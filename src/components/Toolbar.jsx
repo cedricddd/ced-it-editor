@@ -8,7 +8,7 @@ import {
   Highlighter,
   Upload,
   Pencil,
-  Eraser,
+  Trash2,
   Crop,
   Camera,
   Monitor,
@@ -25,11 +25,10 @@ const tools = [
   { id: 'highlight', icon: Highlighter, label: 'Surlignage (6)', shortcut: '6' },
   { id: 'blur', icon: EyeOff, label: 'Masquage (7)', shortcut: '7' },
   { id: 'draw', icon: Pencil, label: 'Dessin libre (8)', shortcut: '8' },
-  { id: 'eraser', icon: Eraser, label: 'Gomme (9)', shortcut: '9' },
-  { id: 'crop', icon: Crop, label: 'Recadrage (0)', shortcut: '0' },
+  { id: 'crop', icon: Crop, label: 'Recadrage (9)', shortcut: '9' },
 ]
 
-function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScreenCapture }) {
+function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScreenCapture, onDeleteSelected }) {
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   const [isCapturing, setIsCapturing] = useState(false)
@@ -244,6 +243,17 @@ function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScree
           </button>
         )
       })}
+
+      <div className="w-10 h-px bg-cyan-500/30 my-2" />
+
+      {/* Delete Button */}
+      <button
+        onClick={onDeleteSelected}
+        className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 transition-all"
+        title="Supprimer la sélection (Suppr)"
+      >
+        <Trash2 size={20} />
+      </button>
     </aside>
 
     {/* Webcam Modal */}

@@ -23,8 +23,8 @@
 | 6 | Surlignage |
 | 7 | Masquage (cacher des données sensibles) |
 | 8 | Dessin libre |
-| 9 | Gomme |
-| 0 | Recadrage |
+| 9 | Recadrage |
+| 🗑️ | Supprimer la sélection (bouton rouge) |
 
 ### Ajustements
 - Luminosité
@@ -41,8 +41,8 @@
 
 - `Ctrl+S` : Ouvrir le menu d'export
 - `←` / `→` : Image précédente / suivante
-- `Suppr` : Supprimer l'image actuelle
-- `1-9, 0` : Sélectionner un outil
+- `Suppr` : Supprimer les objets sélectionnés
+- `1-9` : Sélectionner un outil
 
 ## Installation
 

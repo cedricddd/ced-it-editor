@@ -154,6 +154,22 @@ function App() {
     exportNext()
   }, [canvasRef, images, currentIndex, handleExport, handleNextImage])
 
+  // Supprimer les objets sélectionnés sur le canvas
+  const handleDeleteSelected = useCallback(() => {
+    if (!canvasRef) return
+
+    const activeObjects = canvasRef.getActiveObjects()
+    if (activeObjects.length > 0) {
+      activeObjects.forEach(obj => {
+        if (obj.name !== 'backgroundImage' && obj.name !== 'cropRect') {
+          canvasRef.remove(obj)
+        }
+      })
+      canvasRef.discardActiveObject()
+      canvasRef.renderAll()
+    }
+  }, [canvasRef])
+
   // Raccourcis clavier
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -173,9 +189,8 @@ function App() {
           handlePrevImage()
           break
         case 'delete':
-          if (currentImage) {
-            handleRemoveImage(currentIndex)
-          }
+          // Suppr = supprimer la sélection sur le canvas
+          handleDeleteSelected()
           break
         case '1':
           setActiveTool('select')
@@ -202,9 +217,6 @@ function App() {
           setActiveTool('draw')
           break
         case '9':
-          setActiveTool('eraser')
-          break
-        case '0':
           setActiveTool('crop')
           break
       }
@@ -212,7 +224,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canvasRef, handleNextImage, handlePrevImage, handleRemoveImage, currentIndex, currentImage])
+  }, [canvasRef, handleNextImage, handlePrevImage, handleDeleteSelected, currentIndex, currentImage])
 
   return (
     <div
@@ -266,6 +278,7 @@ function App() {
           activeTool={activeTool}
           setActiveTool={setActiveTool}
           onImport={handleImportImages}
+          onDeleteSelected={handleDeleteSelected}
         />
 
         {/* Main Canvas Area */}
