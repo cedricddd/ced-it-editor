@@ -1,0 +1,471 @@
+import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { fabric } from 'fabric'
+import { Check, X } from 'lucide-react'
+
+function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasReady, savedAnnotations, onSaveAnnotations }) {
+  const canvasRef = useRef(null)
+  const containerRef = useRef(null)
+  const [canvas, setCanvas] = useState(null)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [startPoint, setStartPoint] = useState(null)
+  const [currentShape, setCurrentShape] = useState(null)
+  const [cropRect, setCropRect] = useState(null)
+  const [isCropping, setIsCropping] = useState(false)
+  const [backgroundImage, setBackgroundImage] = useState(null)
+  const imageIdRef = useRef(null)
+
+  // Initialiser le canvas
+  useEffect(() => {
+    if (!canvasRef.current) return
+
+    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+      backgroundColor: '#0a1628',
+      selection: true,
+    })
+
+    setCanvas(fabricCanvas)
+    onCanvasReady(fabricCanvas)
+
+    const handleResize = () => {
+      if (containerRef.current) {
+        const { width, height } = containerRef.current.getBoundingClientRect()
+        fabricCanvas.setDimensions({ width: width - 10, height: height - 10 })
+        fabricCanvas.renderAll()
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    handleResize()
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      fabricCanvas.dispose()
+    }
+  }, [])
+
+  // Charger l'image et restaurer les annotations
+  useEffect(() => {
+    if (!canvas || !image) return
+
+    // Sauvegarder les annotations de l'image précédente avant de charger la nouvelle
+    if (imageIdRef.current && imageIdRef.current !== image.id && onSaveAnnotations) {
+      onSaveAnnotations()
+    }
+
+    imageIdRef.current = image.id
+
+    fabric.Image.fromURL(image.url, (img) => {
+      canvas.clear()
+      canvas.setBackgroundColor('#0a1628', canvas.renderAll.bind(canvas))
+
+      const containerWidth = canvas.width
+      const containerHeight = canvas.height
+      const scale = Math.min(
+        (containerWidth - 40) / img.width,
+        (containerHeight - 40) / img.height,
+        1
+      )
+
+      img.scale(scale)
+      img.set({
+        left: (containerWidth - img.width * scale) / 2,
+        top: (containerHeight - img.height * scale) / 2,
+        selectable: false,
+        evented: false,
+        name: 'backgroundImage'
+      })
+
+      canvas.add(img)
+      canvas.sendToBack(img)
+      setBackgroundImage(img)
+      setCropRect(null)
+      setIsCropping(false)
+
+      // Restaurer les annotations sauvegardées
+      if (savedAnnotations && savedAnnotations.objects) {
+        const bgImageData = savedAnnotations.objects.find(obj => obj.name === 'backgroundImage')
+        const annotations = savedAnnotations.objects.filter(obj => obj.name !== 'backgroundImage')
+
+        if (annotations.length > 0) {
+          fabric.util.enlivenObjects(annotations, (objects) => {
+            objects.forEach(obj => {
+              canvas.add(obj)
+            })
+            canvas.renderAll()
+          })
+        }
+      }
+
+      canvas.renderAll()
+    }, { crossOrigin: 'anonymous' })
+  }, [canvas, image, savedAnnotations])
+
+  // Appliquer les ajustements
+  useEffect(() => {
+    if (!canvas) return
+
+    const bgImage = canvas.getObjects().find(obj => obj.name === 'backgroundImage')
+    if (!bgImage) return
+
+    const filters = []
+
+    if (adjustments.brightness !== 0) {
+      filters.push(new fabric.Image.filters.Brightness({
+        brightness: adjustments.brightness / 100
+      }))
+    }
+
+    if (adjustments.contrast !== 0) {
+      filters.push(new fabric.Image.filters.Contrast({
+        contrast: adjustments.contrast / 100
+      }))
+    }
+
+    if (adjustments.saturation !== 0) {
+      filters.push(new fabric.Image.filters.Saturation({
+        saturation: adjustments.saturation / 100
+      }))
+    }
+
+    bgImage.filters = filters
+    bgImage.applyFilters()
+    canvas.renderAll()
+  }, [canvas, adjustments])
+
+  // Appliquer le recadrage
+  const applyCrop = useCallback(() => {
+    if (!canvas || !cropRect || !backgroundImage) return
+
+    const rect = cropRect
+    const img = backgroundImage
+
+    const imgLeft = img.left
+    const imgTop = img.top
+    const imgScale = img.scaleX
+
+    const cropX = (rect.left - imgLeft) / imgScale
+    const cropY = (rect.top - imgTop) / imgScale
+    const cropWidth = (rect.width * rect.scaleX) / imgScale
+    const cropHeight = (rect.height * rect.scaleY) / imgScale
+
+    const croppedCanvas = document.createElement('canvas')
+    croppedCanvas.width = cropWidth
+    croppedCanvas.height = cropHeight
+    const ctx = croppedCanvas.getContext('2d')
+
+    const originalImg = new Image()
+    originalImg.crossOrigin = 'anonymous'
+    originalImg.onload = () => {
+      ctx.drawImage(
+        originalImg,
+        Math.max(0, cropX), Math.max(0, cropY), cropWidth, cropHeight,
+        0, 0, cropWidth, cropHeight
+      )
+
+      const croppedDataUrl = croppedCanvas.toDataURL('image/png')
+
+      fabric.Image.fromURL(croppedDataUrl, (newImg) => {
+        canvas.remove(cropRect)
+        canvas.remove(img)
+
+        const containerWidth = canvas.width
+        const containerHeight = canvas.height
+        const scale = Math.min(
+          (containerWidth - 40) / newImg.width,
+          (containerHeight - 40) / newImg.height,
+          1
+        )
+
+        newImg.scale(scale)
+        newImg.set({
+          left: (containerWidth - newImg.width * scale) / 2,
+          top: (containerHeight - newImg.height * scale) / 2,
+          selectable: false,
+          evented: false,
+          name: 'backgroundImage'
+        })
+
+        canvas.add(newImg)
+        canvas.sendToBack(newImg)
+        setBackgroundImage(newImg)
+        setCropRect(null)
+        setIsCropping(false)
+        canvas.renderAll()
+      })
+    }
+    originalImg.src = image.url
+  }, [canvas, cropRect, backgroundImage, image])
+
+  const cancelCrop = useCallback(() => {
+    if (canvas && cropRect) {
+      canvas.remove(cropRect)
+      setCropRect(null)
+      setIsCropping(false)
+      canvas.renderAll()
+    }
+  }, [canvas, cropRect])
+
+  // Gérer les outils de dessin
+  useEffect(() => {
+    if (!canvas) return
+
+    const color = toolSettings?.color || '#00d4ff'
+    const strokeWidth = toolSettings?.strokeWidth || 3
+    const fontSize = toolSettings?.fontSize || 24
+
+    canvas.isDrawingMode = activeTool === 'draw'
+    canvas.selection = activeTool === 'select'
+
+    if (activeTool === 'draw') {
+      canvas.freeDrawingBrush.width = strokeWidth
+      canvas.freeDrawingBrush.color = color
+    }
+
+    canvas.off('mouse:down')
+    canvas.off('mouse:move')
+    canvas.off('mouse:up')
+
+    // Outil de recadrage
+    if (activeTool === 'crop') {
+      canvas.on('mouse:down', (opt) => {
+        if (opt.target && opt.target.name !== 'backgroundImage') return
+        setIsDrawing(true)
+        const pointer = canvas.getPointer(opt.e)
+        setStartPoint({ x: pointer.x, y: pointer.y })
+
+        if (cropRect) {
+          canvas.remove(cropRect)
+        }
+
+        const rect = new fabric.Rect({
+          left: pointer.x,
+          top: pointer.y,
+          width: 0,
+          height: 0,
+          fill: 'rgba(0, 212, 255, 0.2)',
+          stroke: '#00d4ff',
+          strokeWidth: 2,
+          strokeDashArray: [5, 5],
+          selectable: true,
+          hasControls: true,
+          name: 'cropRect'
+        })
+
+        canvas.add(rect)
+        setCropRect(rect)
+        setCurrentShape(rect)
+      })
+
+      canvas.on('mouse:move', (opt) => {
+        if (!isDrawing || !currentShape || !startPoint) return
+
+        const pointer = canvas.getPointer(opt.e)
+        const width = Math.abs(pointer.x - startPoint.x)
+        const height = Math.abs(pointer.y - startPoint.y)
+
+        currentShape.set({
+          width,
+          height,
+          left: Math.min(pointer.x, startPoint.x),
+          top: Math.min(pointer.y, startPoint.y),
+        })
+
+        canvas.renderAll()
+      })
+
+      canvas.on('mouse:up', () => {
+        setIsDrawing(false)
+        setCurrentShape(null)
+        setStartPoint(null)
+        if (cropRect && cropRect.width > 10 && cropRect.height > 10) {
+          setIsCropping(true)
+          canvas.setActiveObject(cropRect)
+        }
+      })
+    }
+
+    if (['rectangle', 'circle', 'arrow', 'highlight'].includes(activeTool)) {
+      canvas.on('mouse:down', (opt) => {
+        if (opt.target) return
+        setIsDrawing(true)
+        const pointer = canvas.getPointer(opt.e)
+        setStartPoint({ x: pointer.x, y: pointer.y })
+
+        let shape = null
+        const hexToRgb = (hex) => {
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+          return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+          } : { r: 0, g: 212, b: 255 }
+        }
+
+        const rgb = hexToRgb(color)
+
+        const commonProps = {
+          left: pointer.x,
+          top: pointer.y,
+          originX: 'left',
+          originY: 'top',
+          strokeWidth: strokeWidth,
+          stroke: activeTool === 'highlight' ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)` : color,
+          fill: activeTool === 'highlight' ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)` : 'transparent',
+        }
+
+        if (activeTool === 'rectangle' || activeTool === 'highlight') {
+          shape = new fabric.Rect({
+            ...commonProps,
+            width: 0,
+            height: 0,
+          })
+        } else if (activeTool === 'circle') {
+          shape = new fabric.Ellipse({
+            ...commonProps,
+            rx: 0,
+            ry: 0,
+          })
+        } else if (activeTool === 'arrow') {
+          shape = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
+            stroke: color,
+            strokeWidth: strokeWidth,
+          })
+        }
+
+        if (shape) {
+          canvas.add(shape)
+          setCurrentShape(shape)
+        }
+      })
+
+      canvas.on('mouse:move', (opt) => {
+        if (!isDrawing || !currentShape || !startPoint) return
+
+        const pointer = canvas.getPointer(opt.e)
+
+        if (activeTool === 'rectangle' || activeTool === 'highlight') {
+          const width = Math.abs(pointer.x - startPoint.x)
+          const height = Math.abs(pointer.y - startPoint.y)
+          currentShape.set({
+            width,
+            height,
+            left: Math.min(pointer.x, startPoint.x),
+            top: Math.min(pointer.y, startPoint.y),
+          })
+        } else if (activeTool === 'circle') {
+          const rx = Math.abs(pointer.x - startPoint.x) / 2
+          const ry = Math.abs(pointer.y - startPoint.y) / 2
+          currentShape.set({
+            rx,
+            ry,
+            left: Math.min(pointer.x, startPoint.x),
+            top: Math.min(pointer.y, startPoint.y),
+          })
+        } else if (activeTool === 'arrow') {
+          currentShape.set({
+            x2: pointer.x,
+            y2: pointer.y,
+          })
+        }
+
+        canvas.renderAll()
+      })
+
+      canvas.on('mouse:up', () => {
+        if (activeTool === 'arrow' && currentShape) {
+          const x1 = currentShape.x1
+          const y1 = currentShape.y1
+          const x2 = currentShape.x2
+          const y2 = currentShape.y2
+
+          const angle = Math.atan2(y2 - y1, x2 - x1)
+          const headLength = strokeWidth * 4
+
+          const arrowHead = new fabric.Triangle({
+            left: x2,
+            top: y2,
+            width: headLength,
+            height: headLength,
+            fill: color,
+            angle: (angle * 180 / Math.PI) + 90,
+            originX: 'center',
+            originY: 'center',
+          })
+
+          canvas.add(arrowHead)
+        }
+
+        setIsDrawing(false)
+        setCurrentShape(null)
+        setStartPoint(null)
+        canvas.renderAll()
+      })
+    }
+
+    if (activeTool === 'text') {
+      canvas.on('mouse:down', (opt) => {
+        if (opt.target) return
+        const pointer = canvas.getPointer(opt.e)
+        const text = new fabric.IText('Texte', {
+          left: pointer.x,
+          top: pointer.y,
+          fontFamily: 'Arial',
+          fontSize: fontSize,
+          fill: color,
+          editable: true,
+        })
+        canvas.add(text)
+        canvas.setActiveObject(text)
+        text.enterEditing()
+      })
+    }
+
+    if (activeTool === 'eraser') {
+      canvas.on('mouse:down', (opt) => {
+        if (opt.target && opt.target.name !== 'backgroundImage' && opt.target.name !== 'cropRect') {
+          canvas.remove(opt.target)
+          canvas.renderAll()
+        }
+      })
+    }
+
+    return () => {
+      canvas.off('mouse:down')
+      canvas.off('mouse:move')
+      canvas.off('mouse:up')
+    }
+  }, [canvas, activeTool, isDrawing, currentShape, startPoint, toolSettings, backgroundImage, cropRect])
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex-1 bg-gray-800 flex flex-col items-center justify-center p-1 md:p-2 overflow-hidden relative"
+    >
+      <canvas ref={canvasRef} className="touch-none" />
+
+      {/* Boutons de recadrage */}
+      {isCropping && (
+        <div className="absolute top-2 md:top-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-gray-900/95 p-2 rounded-xl shadow-lg z-10 border border-cyan-500/30">
+          <button
+            onClick={applyCrop}
+            className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg text-xs md:text-sm font-medium transition-all"
+          >
+            <Check size={14} />
+            <span className="hidden md:inline">Appliquer</span>
+            <span className="md:hidden">OK</span>
+          </button>
+          <button
+            onClick={cancelCrop}
+            className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-red-500 to-rose-600 rounded-lg text-xs md:text-sm font-medium transition-all"
+          >
+            <X size={14} />
+            <span className="hidden md:inline">Annuler</span>
+            <span className="md:hidden">Non</span>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default ImageCanvas

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  sharex-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sharex-web-editor
+    ports:
+      - "4040:80"
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# Pour Portainer - Stack déploiement simple
+# Nom suggéré: sharex-web

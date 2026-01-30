@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Ced-IT Theme Colors */
+  --bg-primary: #0a1628;
+  --bg-secondary: #0d1f35;
+  --bg-tertiary: #132743;
+  --bg-card: #0f2541;
+  --accent-cyan: #00d4ff;
+  --accent-cyan-dark: #00a8cc;
+  --accent-gradient: linear-gradient(135deg, #00d4ff 0%, #0066ff 100%);
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: rgba(0, 212, 255, 0.2);
+  --border-hover: rgba(0, 212, 255, 0.4);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.canvas-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Custom scrollbar with Ced-IT theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-cyan-dark);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-cyan);
+}
+
+/* Custom accent color utilities */
+.bg-ced-primary { background-color: var(--bg-primary); }
+.bg-ced-secondary { background-color: var(--bg-secondary); }
+.bg-ced-tertiary { background-color: var(--bg-tertiary); }
+.bg-ced-card { background-color: var(--bg-card); }
+.text-ced-accent { color: var(--accent-cyan); }
+.border-ced { border-color: var(--border-color); }
+
+/* Accent button gradient */
+.btn-accent {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-accent:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+/* Glow effect for active elements */
+.glow-cyan {
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+}
+
+/* Input range accent */
+input[type="range"]::-webkit-slider-thumb {
+  background: var(--accent-cyan);
+}
+
+input[type="range"]::-moz-range-thumb {
+  background: var(--accent-cyan);
+}
