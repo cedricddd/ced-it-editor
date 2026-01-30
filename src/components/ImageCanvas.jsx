@@ -481,20 +481,30 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     if (activeTool === 'eraser') {
       let isErasing = false
 
+      const eraseTarget = (e) => {
+        const pointer = canvas.getPointer(e)
+        const objects = canvas.getObjects()
+
+        for (let i = objects.length - 1; i >= 0; i--) {
+          const obj = objects[i]
+          if (obj.name === 'backgroundImage' || obj.name === 'cropRect') continue
+
+          if (obj.containsPoint(pointer)) {
+            canvas.remove(obj)
+            canvas.renderAll()
+            break
+          }
+        }
+      }
+
       canvas.on('mouse:down', (opt) => {
         isErasing = true
-        if (opt.target && opt.target.name !== 'backgroundImage' && opt.target.name !== 'cropRect') {
-          canvas.remove(opt.target)
-          canvas.renderAll()
-        }
+        eraseTarget(opt.e)
       })
 
       canvas.on('mouse:move', (opt) => {
         if (!isErasing) return
-        if (opt.target && opt.target.name !== 'backgroundImage' && opt.target.name !== 'cropRect') {
-          canvas.remove(opt.target)
-          canvas.renderAll()
-        }
+        eraseTarget(opt.e)
       })
 
       canvas.on('mouse:up', () => {
