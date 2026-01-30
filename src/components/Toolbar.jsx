@@ -13,7 +13,10 @@ import {
   Camera,
   Monitor,
   Video,
-  EyeOff
+  EyeOff,
+  ChevronLeft,
+  ChevronRight,
+  Share2
 } from 'lucide-react'
 
 const tools = [
@@ -28,11 +31,12 @@ const tools = [
   { id: 'crop', icon: Crop, label: 'Recadrage (9)', shortcut: '9' },
 ]
 
-function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScreenCapture, onDeleteSelected }) {
+function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShare, canShare }) {
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   const [isCapturing, setIsCapturing] = useState(false)
   const [showWebcam, setShowWebcam] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
   const videoRef = useRef(null)
   const webcamStreamRef = useRef(null)
 
@@ -164,7 +168,112 @@ function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScree
 
   return (
     <>
-    <aside className="w-16 md:w-16 bg-gray-750 border-r border-cyan-500/20 flex flex-col items-center py-4 gap-2 overflow-y-auto">
+    {/* Mobile: barre compacte en bas */}
+    <aside className={`md:hidden fixed bottom-0 left-0 right-0 bg-gray-750 border-t border-cyan-500/20 z-30 transition-all ${isExpanded ? 'h-auto max-h-[70vh]' : 'h-16'}`}>
+      {/* Barre principale mobile */}
+      <div className="flex items-center justify-around px-2 h-16">
+        {/* Toggle */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-700 text-cyan-400"
+        >
+          {isExpanded ? <ChevronRight size={20} className="rotate-90" /> : <ChevronLeft size={20} className="rotate-90" />}
+        </button>
+
+        {/* Import */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600"
+        >
+          <Upload size={18} />
+        </button>
+
+        {/* Camera */}
+        <button
+          onClick={() => cameraInputRef.current?.click()}
+          className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600"
+        >
+          <Camera size={18} />
+        </button>
+
+        {/* Outil actif */}
+        {(() => {
+          const activeTl = tools.find(t => t.id === activeTool)
+          const Icon = activeTl?.icon || MousePointer2
+          return (
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="w-10 h-10 flex items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/50"
+            >
+              <Icon size={18} />
+            </button>
+          )
+        })()}
+
+        {/* Delete */}
+        <button
+          onClick={onDeleteSelected}
+          className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-rose-600"
+        >
+          <Trash2 size={18} />
+        </button>
+
+        {/* Share */}
+        {canShare && (
+          <button
+            onClick={onShare}
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600"
+          >
+            <Share2 size={18} />
+          </button>
+        )}
+      </div>
+
+      {/* Outils expandés mobile */}
+      {isExpanded && (
+        <div className="px-4 pb-4 grid grid-cols-5 gap-2 overflow-y-auto max-h-[calc(70vh-4rem)]">
+          {/* Capture buttons */}
+          <button
+            onClick={handleScreenCapture}
+            disabled={isCapturing}
+            className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-600"
+            title="Capture d'écran"
+          >
+            <Monitor size={20} />
+          </button>
+          <button
+            onClick={handleWebcamStart}
+            className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600"
+            title="Webcam"
+          >
+            <Video size={20} />
+          </button>
+
+          {/* Tous les outils */}
+          {tools.map((tool) => {
+            const Icon = tool.icon
+            const isActive = activeTool === tool.id
+            return (
+              <button
+                key={tool.id}
+                onClick={() => { setActiveTool(tool.id); setIsExpanded(false) }}
+                className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all ${
+                  isActive
+                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
+                    : 'bg-gray-700/50 text-gray-400 border border-transparent'
+                }`}
+                title={tool.label}
+              >
+                <Icon size={20} />
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </aside>
+
+    {/* Desktop: barre latérale classique */}
+    <aside className="hidden md:flex w-16 bg-gray-750 border-r border-cyan-500/20 flex-col items-center py-4 gap-2 overflow-y-auto">
       {/* Import Button */}
       <button
         onClick={() => fileInputRef.current?.click()}
@@ -173,14 +282,6 @@ function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScree
       >
         <Upload size={20} />
       </button>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleFileSelect}
-        className="hidden"
-      />
 
       {/* Camera Button */}
       <button
@@ -190,14 +291,6 @@ function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScree
       >
         <Camera size={20} />
       </button>
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleCameraCapture}
-        className="hidden"
-      />
 
       {/* Screen Capture Button */}
       <button
@@ -213,7 +306,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScree
         <Monitor size={20} />
       </button>
 
-      {/* Webcam Button (Desktop) */}
+      {/* Webcam Button */}
       <button
         onClick={handleWebcamStart}
         className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 transition-all"
@@ -254,7 +347,39 @@ function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScree
       >
         <Trash2 size={20} />
       </button>
+
+      {/* Share Button (if available) */}
+      {canShare && (
+        <>
+          <div className="w-10 h-px bg-cyan-500/30 my-2" />
+          <button
+            onClick={onShare}
+            className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 transition-all"
+            title="Partager l'image"
+          >
+            <Share2 size={20} />
+          </button>
+        </>
+      )}
     </aside>
+
+    {/* Hidden inputs */}
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/*"
+      multiple
+      onChange={handleFileSelect}
+      className="hidden"
+    />
+    <input
+      ref={cameraInputRef}
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onChange={handleCameraCapture}
+      className="hidden"
+    />
 
     {/* Webcam Modal */}
     {showWebcam && (

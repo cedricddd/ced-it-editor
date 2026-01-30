@@ -170,6 +170,39 @@ function App() {
     }
   }, [canvasRef])
 
+  // Vérifier si le partage est disponible
+  const canShare = typeof navigator !== 'undefined' && navigator.share && navigator.canShare
+
+  // Partager l'image
+  const handleShare = useCallback(async () => {
+    if (!canvasRef || !currentImage) return
+
+    try {
+      const dataUrl = canvasRef.toDataURL({ format: 'png', quality: 1 })
+      const response = await fetch(dataUrl)
+      const blob = await response.blob()
+      const file = new File([blob], `${currentImage.name || 'image'}.png`, { type: 'image/png' })
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Ced-IT Editor',
+          text: 'Image éditée avec Ced-IT Editor'
+        })
+      } else {
+        // Fallback: télécharger l'image
+        const link = document.createElement('a')
+        link.download = `${currentImage.name || 'image'}.png`
+        link.href = dataUrl
+        link.click()
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Erreur de partage:', err)
+      }
+    }
+  }, [canvasRef, currentImage])
+
   // Raccourcis clavier
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -279,10 +312,12 @@ function App() {
           setActiveTool={setActiveTool}
           onImport={handleImportImages}
           onDeleteSelected={handleDeleteSelected}
+          onShare={handleShare}
+          canShare={canShare}
         />
 
         {/* Main Canvas Area */}
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
           {currentImage ? (
             <ImageCanvas
               image={currentImage}
