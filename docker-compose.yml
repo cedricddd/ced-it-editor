@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  sharex-web:
+  ced-it-editor:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sharex-web-editor
+    container_name: ced-it-editor
     ports:
       - "4040:80"
     restart: unless-stopped
@@ -19,4 +19,4 @@ services:
       start_period: 10s
 
 # Pour Portainer - Stack déploiement simple
-# Nom suggéré: sharex-web
+# Nom suggéré: ced-it-editor

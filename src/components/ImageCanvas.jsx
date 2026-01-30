@@ -43,7 +43,7 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     }
   }, [])
 
-  // Charger l'image et restaurer les annotations
+  // Charger l'image (sans annotations automatiques)
   useEffect(() => {
     if (!canvas || !image) return
 
@@ -52,9 +52,13 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
       onSaveAnnotations()
     }
 
-    imageIdRef.current = image.id
+    const currentImageId = image.id
+    imageIdRef.current = currentImageId
 
     fabric.Image.fromURL(image.url, (img) => {
+      // Vérifier que c'est toujours la bonne image (éviter les race conditions)
+      if (imageIdRef.current !== currentImageId) return
+
       canvas.clear()
       canvas.setBackgroundColor('#0a1628', canvas.renderAll.bind(canvas))
 
@@ -80,25 +84,29 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
       setBackgroundImage(img)
       setCropRect(null)
       setIsCropping(false)
-
-      // Restaurer les annotations sauvegardées
-      if (savedAnnotations && savedAnnotations.objects) {
-        const bgImageData = savedAnnotations.objects.find(obj => obj.name === 'backgroundImage')
-        const annotations = savedAnnotations.objects.filter(obj => obj.name !== 'backgroundImage')
-
-        if (annotations.length > 0) {
-          fabric.util.enlivenObjects(annotations, (objects) => {
-            objects.forEach(obj => {
-              canvas.add(obj)
-            })
-            canvas.renderAll()
-          })
-        }
-      }
-
       canvas.renderAll()
     }, { crossOrigin: 'anonymous' })
-  }, [canvas, image, savedAnnotations])
+  }, [canvas, image?.id, image?.url, onSaveAnnotations])
+
+  // Restaurer les annotations séparément (uniquement si savedAnnotations change pour cette image)
+  useEffect(() => {
+    if (!canvas || !image || !savedAnnotations?.objects) return
+
+    // Ne restaurer que si le canvas est vide (juste l'image de fond)
+    const existingAnnotations = canvas.getObjects().filter(obj => obj.name !== 'backgroundImage')
+    if (existingAnnotations.length > 0) return
+
+    const annotations = savedAnnotations.objects.filter(obj => obj.name !== 'backgroundImage')
+
+    if (annotations.length > 0) {
+      fabric.util.enlivenObjects(annotations, (objects) => {
+        objects.forEach(obj => {
+          canvas.add(obj)
+        })
+        canvas.renderAll()
+      })
+    }
+  }, [canvas, image?.id, savedAnnotations])
 
   // Appliquer les ajustements
   useEffect(() => {
@@ -471,11 +479,26 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     }
 
     if (activeTool === 'eraser') {
+      let isErasing = false
+
       canvas.on('mouse:down', (opt) => {
+        isErasing = true
         if (opt.target && opt.target.name !== 'backgroundImage' && opt.target.name !== 'cropRect') {
           canvas.remove(opt.target)
           canvas.renderAll()
         }
+      })
+
+      canvas.on('mouse:move', (opt) => {
+        if (!isErasing) return
+        if (opt.target && opt.target.name !== 'backgroundImage' && opt.target.name !== 'cropRect') {
+          canvas.remove(opt.target)
+          canvas.renderAll()
+        }
+      })
+
+      canvas.on('mouse:up', () => {
+        isErasing = false
       })
     }
 
