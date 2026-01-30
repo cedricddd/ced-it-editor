@@ -284,6 +284,56 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
       })
     }
 
+    // Outil de masquage (blur)
+    if (activeTool === 'blur') {
+      canvas.on('mouse:down', (opt) => {
+        if (opt.target) return
+        setIsDrawing(true)
+        const pointer = canvas.getPointer(opt.e)
+        setStartPoint({ x: pointer.x, y: pointer.y })
+
+        const blurRect = new fabric.Rect({
+          left: pointer.x,
+          top: pointer.y,
+          width: 0,
+          height: 0,
+          fill: '#1a1a2e',
+          stroke: '#333',
+          strokeWidth: 1,
+          rx: 4,
+          ry: 4,
+          name: 'blurMask'
+        })
+
+        canvas.add(blurRect)
+        setCurrentShape(blurRect)
+      })
+
+      canvas.on('mouse:move', (opt) => {
+        if (!isDrawing || !currentShape || !startPoint) return
+
+        const pointer = canvas.getPointer(opt.e)
+        const width = Math.abs(pointer.x - startPoint.x)
+        const height = Math.abs(pointer.y - startPoint.y)
+
+        currentShape.set({
+          width,
+          height,
+          left: Math.min(pointer.x, startPoint.x),
+          top: Math.min(pointer.y, startPoint.y),
+        })
+
+        canvas.renderAll()
+      })
+
+      canvas.on('mouse:up', () => {
+        setIsDrawing(false)
+        setCurrentShape(null)
+        setStartPoint(null)
+        canvas.renderAll()
+      })
+    }
+
     if (['rectangle', 'circle', 'arrow', 'highlight'].includes(activeTool)) {
       canvas.on('mouse:down', (opt) => {
         if (opt.target) return

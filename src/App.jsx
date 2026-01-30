@@ -196,12 +196,15 @@ function App() {
           setActiveTool('highlight')
           break
         case '7':
-          setActiveTool('draw')
+          setActiveTool('blur')
           break
         case '8':
-          setActiveTool('eraser')
+          setActiveTool('draw')
           break
         case '9':
+          setActiveTool('eraser')
+          break
+        case '0':
           setActiveTool('crop')
           break
       }
@@ -219,9 +222,12 @@ function App() {
     >
       {/* Header - Ced-IT Style */}
       <header className="bg-gray-750 border-b border-cyan-500/20 px-2 md:px-4 py-2 md:py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 md:gap-3">
-          <img src="/logo.png" alt="Ced-IT" className="h-8 md:h-10 w-auto" />
-          <h1 className="text-lg md:text-xl font-bold text-cyan-400 hidden sm:block">Editor</h1>
+        <div className="flex items-center gap-3 md:gap-4">
+          <img src="/logo.png" alt="Ced-IT" className="h-12 md:h-14 w-auto" />
+          <div className="hidden sm:flex flex-col">
+            <h1 className="text-xl md:text-2xl font-bold text-cyan-400 leading-tight">Ced-IT</h1>
+            <span className="text-xs text-gray-400">Image Editor</span>
+          </div>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
           <span className="text-gray-400 text-xs md:text-sm">

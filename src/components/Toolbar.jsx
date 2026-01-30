@@ -12,7 +12,8 @@ import {
   Crop,
   Camera,
   Monitor,
-  Video
+  Video,
+  EyeOff
 } from 'lucide-react'
 
 const tools = [
@@ -22,9 +23,10 @@ const tools = [
   { id: 'circle', icon: Circle, label: 'Cercle (4)', shortcut: '4' },
   { id: 'arrow', icon: ArrowRight, label: 'Flèche (5)', shortcut: '5' },
   { id: 'highlight', icon: Highlighter, label: 'Surlignage (6)', shortcut: '6' },
-  { id: 'draw', icon: Pencil, label: 'Dessin libre (7)', shortcut: '7' },
-  { id: 'eraser', icon: Eraser, label: 'Gomme (8)', shortcut: '8' },
-  { id: 'crop', icon: Crop, label: 'Recadrage (9)', shortcut: '9' },
+  { id: 'blur', icon: EyeOff, label: 'Masquage (7)', shortcut: '7' },
+  { id: 'draw', icon: Pencil, label: 'Dessin libre (8)', shortcut: '8' },
+  { id: 'eraser', icon: Eraser, label: 'Gomme (9)', shortcut: '9' },
+  { id: 'crop', icon: Crop, label: 'Recadrage (0)', shortcut: '0' },
 ]
 
 function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScreenCapture }) {
@@ -104,6 +106,14 @@ function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScree
   }
 
   const handleWebcamStart = async () => {
+    // Vérifier si on est en HTTPS ou localhost
+    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+
+    if (!isSecure) {
+      alert('La webcam nécessite une connexion sécurisée (HTTPS).\n\nPour l\'utiliser :\n- Accédez via https:// ou\n- Utilisez localhost')
+      return
+    }
+
     if (!navigator.mediaDevices?.getUserMedia) {
       alert('La webcam n\'est pas supportée sur ce navigateur')
       return
@@ -117,7 +127,11 @@ function Toolbar({ activeTool, setActiveTool, onImport, onCameraCapture, onScree
       setShowWebcam(true)
     } catch (err) {
       console.error('Erreur webcam:', err)
-      alert('Impossible d\'accéder à la webcam')
+      if (err.name === 'NotAllowedError') {
+        alert('Accès à la webcam refusé.\nVeuillez autoriser l\'accès dans les paramètres du navigateur.')
+      } else {
+        alert('Impossible d\'accéder à la webcam')
+      }
     }
   }
 
