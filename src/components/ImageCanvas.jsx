@@ -481,15 +481,28 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     if (activeTool === 'eraser') {
       let isErasing = false
 
-      const eraseTarget = (e) => {
-        const pointer = canvas.getPointer(e)
+      const eraseAtPointer = (opt) => {
+        // Utiliser la cible détectée par Fabric.js
+        const target = opt.target
+        if (target && target.name !== 'backgroundImage' && target.name !== 'cropRect') {
+          canvas.remove(target)
+          canvas.discardActiveObject()
+          canvas.renderAll()
+          return
+        }
+
+        // Fallback: chercher manuellement avec le pointer
+        const pointer = canvas.getPointer(opt.e)
         const objects = canvas.getObjects()
 
         for (let i = objects.length - 1; i >= 0; i--) {
           const obj = objects[i]
           if (obj.name === 'backgroundImage' || obj.name === 'cropRect') continue
 
-          if (obj.containsPoint(pointer)) {
+          // Utiliser getBoundingRect pour une détection plus fiable
+          const bounds = obj.getBoundingRect()
+          if (pointer.x >= bounds.left && pointer.x <= bounds.left + bounds.width &&
+              pointer.y >= bounds.top && pointer.y <= bounds.top + bounds.height) {
             canvas.remove(obj)
             canvas.renderAll()
             break
@@ -499,12 +512,12 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
 
       canvas.on('mouse:down', (opt) => {
         isErasing = true
-        eraseTarget(opt.e)
+        eraseAtPointer(opt)
       })
 
       canvas.on('mouse:move', (opt) => {
         if (!isErasing) return
-        eraseTarget(opt.e)
+        eraseAtPointer(opt)
       })
 
       canvas.on('mouse:up', () => {
