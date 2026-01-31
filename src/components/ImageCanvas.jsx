@@ -488,6 +488,8 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
         canvas.add(text)
         canvas.setActiveObject(text)
         text.enterEditing()
+        // Sélectionner tout le texte pour qu'il soit remplacé à la frappe
+        text.selectAll()
       })
     }
 
