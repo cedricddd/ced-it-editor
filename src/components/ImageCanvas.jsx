@@ -488,110 +488,99 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     }
   }, [canvas, activeTool, isDrawing, currentShape, startPoint, toolSettings, backgroundImage, cropRect])
 
-  // Pinch-to-zoom pour mobile
+  // Pinch-to-zoom pour mobile via événements Fabric.js
   useEffect(() => {
-    if (!canvas || !containerRef.current) return
+    if (!canvas) return
 
-    const container = containerRef.current
-    // Récupérer le canvas upper de Fabric.js (celui qui reçoit les événements)
-    const upperCanvas = container.querySelector('.upper-canvas') || container
-
-    const getDistance = (touches) => {
-      const dx = touches[0].clientX - touches[1].clientX
-      const dy = touches[0].clientY - touches[1].clientY
-      return Math.sqrt(dx * dx + dy * dy)
-    }
-
-    const getMidpoint = (touches) => {
-      return {
-        x: (touches[0].clientX + touches[1].clientX) / 2,
-        y: (touches[0].clientY + touches[1].clientY) / 2
-      }
-    }
-
+    let lastDistance = 0
     let isPinching = false
 
-    const handleTouchStart = (e) => {
-      if (e.touches.length === 2) {
-        isPinching = true
-        e.preventDefault()
-        e.stopPropagation()
-        lastTouchDistance.current = getDistance(e.touches)
-        lastPanPoint.current = getMidpoint(e.touches)
+    const getDistance = (e) => {
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      return Math.sqrt(
+        Math.pow(touch2.clientX - touch1.clientX, 2) +
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+      )
+    }
+
+    const getMidpoint = (e) => {
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      return {
+        x: (touch1.clientX + touch2.clientX) / 2,
+        y: (touch1.clientY + touch2.clientY) / 2
       }
     }
 
-    const handleTouchMove = (e) => {
-      if (e.touches.length === 2 && isPinching) {
-        e.preventDefault()
-        e.stopPropagation()
+    // Gestionnaire touch:gesture de Fabric.js
+    const handleGesture = (opt) => {
+      const e = opt.e
+      if (e.touches && e.touches.length === 2) {
+        if (!isPinching) {
+          isPinching = true
+          lastDistance = getDistance(e)
+          canvas.selection = false
+          return
+        }
 
-        const currentDistance = getDistance(e.touches)
-        const currentMidpoint = getMidpoint(e.touches)
+        const currentDistance = getDistance(e)
+        const midpoint = getMidpoint(e)
 
-        if (lastTouchDistance.current) {
-          // Calculer le facteur de zoom
-          const scale = currentDistance / lastTouchDistance.current
+        if (lastDistance > 0) {
+          const scale = currentDistance / lastDistance
           let newZoom = canvas.getZoom() * scale
-
-          // Limiter le zoom entre 0.5x et 5x
           newZoom = Math.min(Math.max(newZoom, 0.5), 5)
 
-          // Obtenir le point de zoom relatif au canvas
-          const rect = container.getBoundingClientRect()
+          const canvasRect = canvas.getElement().getBoundingClientRect()
           const zoomPoint = {
-            x: currentMidpoint.x - rect.left,
-            y: currentMidpoint.y - rect.top
+            x: midpoint.x - canvasRect.left,
+            y: midpoint.y - canvasRect.top
           }
 
-          // Appliquer le zoom au point central du pinch
-          canvas.zoomToPoint({ x: zoomPoint.x, y: zoomPoint.y }, newZoom)
+          canvas.zoomToPoint(zoomPoint, newZoom)
           setZoomLevel(newZoom)
         }
 
-        lastTouchDistance.current = currentDistance
-        lastPanPoint.current = currentMidpoint
-        canvas.renderAll()
+        lastDistance = currentDistance
+        opt.e.preventDefault()
+        opt.e.stopPropagation()
       }
     }
 
-    const handleTouchEnd = (e) => {
-      if (e.touches.length < 2) {
+    const handleTouchEnd = () => {
+      if (isPinching) {
         isPinching = false
-        lastTouchDistance.current = null
-        lastPanPoint.current = null
+        lastDistance = 0
+        canvas.selection = true
       }
     }
 
     // Double-tap pour reset zoom
     let lastTap = 0
-    const handleDoubleTap = (e) => {
-      if (e.touches.length === 1) {
-        const currentTime = new Date().getTime()
-        const tapLength = currentTime - lastTap
-
-        if (tapLength < 300 && tapLength > 0) {
-          e.preventDefault()
-          // Reset zoom
-          canvas.setViewportTransform([1, 0, 0, 1, 0, 0])
-          setZoomLevel(1)
-          canvas.renderAll()
-        }
-        lastTap = currentTime
+    const handleDoubleTap = (opt) => {
+      const now = Date.now()
+      if (now - lastTap < 300) {
+        canvas.setViewportTransform([1, 0, 0, 1, 0, 0])
+        setZoomLevel(1)
+        canvas.renderAll()
       }
+      lastTap = now
     }
 
-    // Utiliser la phase de capture pour intercepter avant Fabric.js
-    upperCanvas.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true })
-    upperCanvas.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true })
-    upperCanvas.addEventListener('touchend', handleTouchEnd, { capture: true })
-    container.addEventListener('touchstart', handleDoubleTap, { passive: false })
+    canvas.on('touch:gesture', handleGesture)
+    canvas.on('touch:drag', handleGesture)
+    canvas.on('mouse:up', handleTouchEnd)
+    canvas.on('mouse:down', handleDoubleTap)
+
+    // Activer les gestes touch dans Fabric.js
+    canvas.allowTouchScrolling = false
 
     return () => {
-      upperCanvas.removeEventListener('touchstart', handleTouchStart, { capture: true })
-      upperCanvas.removeEventListener('touchmove', handleTouchMove, { capture: true })
-      upperCanvas.removeEventListener('touchend', handleTouchEnd, { capture: true })
-      container.removeEventListener('touchstart', handleDoubleTap)
+      canvas.off('touch:gesture', handleGesture)
+      canvas.off('touch:drag', handleGesture)
+      canvas.off('mouse:up', handleTouchEnd)
+      canvas.off('mouse:down', handleDoubleTap)
     }
   }, [canvas])
 
