@@ -179,9 +179,9 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
   return (
     <>
     {/* Mobile: barre compacte en bas */}
-    <aside className={`md:hidden fixed bottom-0 left-0 right-0 bg-gray-750 border-t border-cyan-500/20 z-50 transition-all pb-safe ${isExpanded ? 'h-auto max-h-[70vh]' : ''}`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-      {/* Barre principale mobile */}
-      <div className="flex items-center justify-around px-2 h-16 min-h-[64px]">
+    <aside className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-750 border-t border-cyan-500/20 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      {/* Barre principale mobile - toujours visible */}
+      <div className="flex items-center justify-around px-2 h-16">
         {/* Toggle */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -261,7 +261,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
 
       {/* Outils expandés mobile */}
       {isExpanded && (
-        <div className="px-4 pb-4 grid grid-cols-5 gap-2 overflow-y-auto max-h-[calc(70vh-4rem)]">
+        <div className="px-4 py-4 grid grid-cols-5 gap-2 overflow-y-auto max-h-[50vh] bg-gray-750 border-t border-cyan-500/20">
           {/* Capture buttons */}
           <button
             onClick={handleScreenCapture}
