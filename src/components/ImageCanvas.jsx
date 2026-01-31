@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { fabric } from 'fabric'
-import { Check, X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react'
+import { Check, X, ZoomIn, ZoomOut, RotateCcw, Move } from 'lucide-react'
 
 function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasReady, savedAnnotations, onSaveAnnotations }) {
   const canvasRef = useRef(null)
@@ -514,6 +514,82 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     canvas.renderAll()
   }, [canvas])
 
+  const handleCenterView = useCallback(() => {
+    if (!canvas) return
+    const zoom = canvas.getZoom()
+    // Centrer la vue en gardant le zoom actuel
+    canvas.setViewportTransform([zoom, 0, 0, zoom, 0, 0])
+    canvas.renderAll()
+  }, [canvas])
+
+  // Activer le mode pan quand zoomé
+  useEffect(() => {
+    if (!canvas) return
+
+    let isPanning = false
+    let lastPosX = 0
+    let lastPosY = 0
+
+    const handleMouseDown = (opt) => {
+      // Activer le pan seulement si zoomé et en mode sélection
+      if (canvas.getZoom() > 1 && activeTool === 'select') {
+        const evt = opt.e
+        // Vérifier si on clique sur un objet
+        if (!opt.target || opt.target.name === 'backgroundImage') {
+          isPanning = true
+          canvas.selection = false
+          lastPosX = evt.clientX || (evt.touches && evt.touches[0]?.clientX)
+          lastPosY = evt.clientY || (evt.touches && evt.touches[0]?.clientY)
+          canvas.defaultCursor = 'grabbing'
+          canvas.setCursor('grabbing')
+        }
+      }
+    }
+
+    const handleMouseMove = (opt) => {
+      if (isPanning) {
+        const evt = opt.e
+        const clientX = evt.clientX || (evt.touches && evt.touches[0]?.clientX)
+        const clientY = evt.clientY || (evt.touches && evt.touches[0]?.clientY)
+
+        if (clientX && clientY) {
+          const vpt = canvas.viewportTransform
+          vpt[4] += clientX - lastPosX
+          vpt[5] += clientY - lastPosY
+          canvas.requestRenderAll()
+          lastPosX = clientX
+          lastPosY = clientY
+        }
+      }
+    }
+
+    const handleMouseUp = () => {
+      if (isPanning) {
+        isPanning = false
+        canvas.selection = true
+        canvas.defaultCursor = 'default'
+        canvas.setCursor('default')
+      }
+    }
+
+    canvas.on('mouse:down', handleMouseDown)
+    canvas.on('mouse:move', handleMouseMove)
+    canvas.on('mouse:up', handleMouseUp)
+
+    // Mettre à jour le curseur selon le zoom
+    if (canvas.getZoom() > 1 && activeTool === 'select') {
+      canvas.defaultCursor = 'grab'
+    } else {
+      canvas.defaultCursor = 'default'
+    }
+
+    return () => {
+      canvas.off('mouse:down', handleMouseDown)
+      canvas.off('mouse:move', handleMouseMove)
+      canvas.off('mouse:up', handleMouseUp)
+    }
+  }, [canvas, zoomLevel, activeTool])
+
   return (
     <div
       ref={containerRef}
@@ -539,12 +615,22 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
           <ZoomOut size={18} />
         </button>
         {zoomLevel !== 1 && (
-          <button
-            onClick={handleZoomReset}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 mt-1"
-          >
-            <RotateCcw size={16} />
-          </button>
+          <>
+            <button
+              onClick={handleCenterView}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-700 hover:bg-gray-600 text-cyan-400 mt-1"
+              title="Centrer"
+            >
+              <Move size={16} />
+            </button>
+            <button
+              onClick={handleZoomReset}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400"
+              title="Reset 100%"
+            >
+              <RotateCcw size={16} />
+            </button>
+          </>
         )}
       </div>
 
