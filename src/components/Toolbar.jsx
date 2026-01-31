@@ -179,9 +179,9 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
   return (
     <>
     {/* Mobile: barre compacte en bas */}
-    <aside className={`md:hidden fixed bottom-0 left-0 right-0 bg-gray-750 border-t border-cyan-500/20 z-30 transition-all ${isExpanded ? 'h-auto max-h-[70vh]' : 'h-16'}`}>
+    <aside className={`md:hidden fixed bottom-0 left-0 right-0 bg-gray-750 border-t border-cyan-500/20 z-50 transition-all pb-safe ${isExpanded ? 'h-auto max-h-[70vh]' : ''}`} style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       {/* Barre principale mobile */}
-      <div className="flex items-center justify-around px-2 h-16">
+      <div className="flex items-center justify-around px-2 h-16 min-h-[64px]">
         {/* Toggle */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
