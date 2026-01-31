@@ -227,6 +227,16 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     canvas.isDrawingMode = activeTool === 'draw'
     canvas.selection = activeTool === 'select'
 
+    // Désactiver le touch-action sur le canvas quand un outil de dessin est actif
+    const upperCanvas = canvas.upperCanvasEl
+    if (upperCanvas) {
+      if (['rectangle', 'circle', 'arrow', 'highlight', 'blur', 'crop', 'draw'].includes(activeTool)) {
+        upperCanvas.style.touchAction = 'none'
+      } else {
+        upperCanvas.style.touchAction = 'manipulation'
+      }
+    }
+
     if (activeTool === 'draw') {
       canvas.freeDrawingBrush.width = strokeWidth
       canvas.freeDrawingBrush.color = color
