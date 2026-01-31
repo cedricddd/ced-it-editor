@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { fabric } from 'fabric'
-import { Check, X } from 'lucide-react'
+import { Check, X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react'
 
 function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasReady, savedAnnotations, onSaveAnnotations }) {
   const canvasRef = useRef(null)
@@ -488,100 +488,30 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     }
   }, [canvas, activeTool, isDrawing, currentShape, startPoint, toolSettings, backgroundImage, cropRect])
 
-  // Pinch-to-zoom pour mobile via événements Fabric.js
-  useEffect(() => {
+  // Fonctions de zoom
+  const handleZoomIn = useCallback(() => {
     if (!canvas) return
+    let newZoom = canvas.getZoom() * 1.2
+    newZoom = Math.min(newZoom, 5)
+    canvas.setZoom(newZoom)
+    setZoomLevel(newZoom)
+    canvas.renderAll()
+  }, [canvas])
 
-    let lastDistance = 0
-    let isPinching = false
+  const handleZoomOut = useCallback(() => {
+    if (!canvas) return
+    let newZoom = canvas.getZoom() / 1.2
+    newZoom = Math.max(newZoom, 0.5)
+    canvas.setZoom(newZoom)
+    setZoomLevel(newZoom)
+    canvas.renderAll()
+  }, [canvas])
 
-    const getDistance = (e) => {
-      const touch1 = e.touches[0]
-      const touch2 = e.touches[1]
-      return Math.sqrt(
-        Math.pow(touch2.clientX - touch1.clientX, 2) +
-        Math.pow(touch2.clientY - touch1.clientY, 2)
-      )
-    }
-
-    const getMidpoint = (e) => {
-      const touch1 = e.touches[0]
-      const touch2 = e.touches[1]
-      return {
-        x: (touch1.clientX + touch2.clientX) / 2,
-        y: (touch1.clientY + touch2.clientY) / 2
-      }
-    }
-
-    // Gestionnaire touch:gesture de Fabric.js
-    const handleGesture = (opt) => {
-      const e = opt.e
-      if (e.touches && e.touches.length === 2) {
-        if (!isPinching) {
-          isPinching = true
-          lastDistance = getDistance(e)
-          canvas.selection = false
-          return
-        }
-
-        const currentDistance = getDistance(e)
-        const midpoint = getMidpoint(e)
-
-        if (lastDistance > 0) {
-          const scale = currentDistance / lastDistance
-          let newZoom = canvas.getZoom() * scale
-          newZoom = Math.min(Math.max(newZoom, 0.5), 5)
-
-          const canvasRect = canvas.getElement().getBoundingClientRect()
-          const zoomPoint = {
-            x: midpoint.x - canvasRect.left,
-            y: midpoint.y - canvasRect.top
-          }
-
-          canvas.zoomToPoint(zoomPoint, newZoom)
-          setZoomLevel(newZoom)
-        }
-
-        lastDistance = currentDistance
-        opt.e.preventDefault()
-        opt.e.stopPropagation()
-      }
-    }
-
-    const handleTouchEnd = () => {
-      if (isPinching) {
-        isPinching = false
-        lastDistance = 0
-        canvas.selection = true
-      }
-    }
-
-    // Double-tap pour reset zoom
-    let lastTap = 0
-    const handleDoubleTap = (opt) => {
-      const now = Date.now()
-      if (now - lastTap < 300) {
-        canvas.setViewportTransform([1, 0, 0, 1, 0, 0])
-        setZoomLevel(1)
-        canvas.renderAll()
-      }
-      lastTap = now
-    }
-
-    canvas.on('touch:gesture', handleGesture)
-    canvas.on('touch:drag', handleGesture)
-    canvas.on('mouse:up', handleTouchEnd)
-    canvas.on('mouse:down', handleDoubleTap)
-
-    // Activer les gestes touch dans Fabric.js
-    canvas.allowTouchScrolling = false
-
-    return () => {
-      canvas.off('touch:gesture', handleGesture)
-      canvas.off('touch:drag', handleGesture)
-      canvas.off('mouse:up', handleTouchEnd)
-      canvas.off('mouse:down', handleDoubleTap)
-    }
+  const handleZoomReset = useCallback(() => {
+    if (!canvas) return
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0])
+    setZoomLevel(1)
+    canvas.renderAll()
   }, [canvas])
 
   return (
@@ -591,12 +521,32 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     >
       <canvas ref={canvasRef} />
 
-      {/* Indicateur de zoom (mobile) */}
-      {zoomLevel !== 1 && (
-        <div className="absolute bottom-2 right-2 md:hidden bg-gray-900/80 px-2 py-1 rounded-lg text-xs text-cyan-400 border border-cyan-500/30">
+      {/* Contrôles de zoom (mobile) */}
+      <div className="absolute bottom-20 right-2 md:hidden flex flex-col gap-1 bg-gray-900/90 rounded-xl p-1 border border-cyan-500/30">
+        <button
+          onClick={handleZoomIn}
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-700 hover:bg-gray-600 text-cyan-400"
+        >
+          <ZoomIn size={18} />
+        </button>
+        <div className="text-xs text-center text-cyan-400 py-1">
           {Math.round(zoomLevel * 100)}%
         </div>
-      )}
+        <button
+          onClick={handleZoomOut}
+          className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-700 hover:bg-gray-600 text-cyan-400"
+        >
+          <ZoomOut size={18} />
+        </button>
+        {zoomLevel !== 1 && (
+          <button
+            onClick={handleZoomReset}
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 mt-1"
+          >
+            <RotateCcw size={16} />
+          </button>
+        )}
+      </div>
 
       {/* Boutons de recadrage */}
       {isCropping && (
