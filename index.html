@@ -5,6 +5,20 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ced-IT Image Editor</title>
+    <style>
+      /* Désactiver le zoom double-tap sur mobile */
+      * {
+        touch-action: manipulation;
+      }
+      html, body, #root {
+        touch-action: manipulation;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        overflow: hidden;
+        height: 100%;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
