@@ -173,7 +173,7 @@ function App() {
   // Vérifier si le partage est disponible
   const canShare = typeof navigator !== 'undefined' && navigator.share && navigator.canShare
 
-  // Partager l'image
+  // Partager l'image actuelle
   const handleShare = useCallback(async () => {
     if (!canvasRef || !currentImage) return
 
@@ -202,6 +202,52 @@ function App() {
       }
     }
   }, [canvasRef, currentImage])
+
+  // Partager toutes les images
+  const handleShareAll = useCallback(async () => {
+    if (!canvasRef || images.length === 0) return
+
+    try {
+      const files = []
+
+      // Convertir l'image actuelle du canvas
+      const currentDataUrl = canvasRef.toDataURL({ format: 'png', quality: 1 })
+      const currentResponse = await fetch(currentDataUrl)
+      const currentBlob = await currentResponse.blob()
+      files.push(new File([currentBlob], `${currentImage?.name || 'image'}.png`, { type: 'image/png' }))
+
+      // Ajouter les autres images de la file (images originales sans annotations du canvas)
+      for (let i = 0; i < images.length; i++) {
+        if (i !== currentIndex) {
+          const img = images[i]
+          const response = await fetch(img.url)
+          const blob = await response.blob()
+          files.push(new File([blob], `${img.name || `image_${i}`}.png`, { type: 'image/png' }))
+        }
+      }
+
+      if (navigator.canShare && navigator.canShare({ files })) {
+        await navigator.share({
+          files,
+          title: 'Ced-IT Editor',
+          text: `${files.length} images éditées avec Ced-IT Editor`
+        })
+      } else {
+        // Fallback: télécharger chaque image
+        files.forEach((file, index) => {
+          const url = URL.createObjectURL(file)
+          const link = document.createElement('a')
+          link.download = file.name
+          link.href = url
+          setTimeout(() => link.click(), index * 200)
+        })
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Erreur de partage multiple:', err)
+      }
+    }
+  }, [canvasRef, images, currentIndex, currentImage])
 
   // Raccourcis clavier
   useEffect(() => {
@@ -313,7 +359,9 @@ function App() {
           onImport={handleImportImages}
           onDeleteSelected={handleDeleteSelected}
           onShare={handleShare}
+          onShareAll={handleShareAll}
           canShare={canShare}
+          hasMultipleImages={images.length > 1}
         />
 
         {/* Main Canvas Area */}
@@ -351,14 +399,16 @@ function App() {
             </div>
           )}
 
-          {/* Image Queue */}
+          {/* Image Queue - avec marge pour la barre mobile */}
           {images.length > 0 && (
-            <ImageQueue
-              images={images}
-              currentIndex={currentIndex}
-              onSelect={handleChangeImage}
-              onRemove={handleRemoveImage}
-            />
+            <div className="pb-20 md:pb-0">
+              <ImageQueue
+                images={images}
+                currentIndex={currentIndex}
+                onSelect={handleChangeImage}
+                onRemove={handleRemoveImage}
+              />
+            </div>
           )}
         </main>
 

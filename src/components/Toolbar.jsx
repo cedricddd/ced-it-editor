@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import {
   MousePointer2,
   Type,
@@ -31,14 +31,24 @@ const tools = [
   { id: 'crop', icon: Crop, label: 'Recadrage (9)', shortcut: '9' },
 ]
 
-function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShare, canShare }) {
+function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShare, onShareAll, canShare, hasMultipleImages }) {
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   const [isCapturing, setIsCapturing] = useState(false)
   const [showWebcam, setShowWebcam] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [showShareMenu, setShowShareMenu] = useState(false)
   const videoRef = useRef(null)
   const webcamStreamRef = useRef(null)
+
+  // Fermer le menu de partage quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = () => setShowShareMenu(false)
+    if (showShareMenu) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showShareMenu])
 
   const handleFileSelect = (e) => {
     const files = e.target.files
@@ -220,12 +230,32 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
 
         {/* Share */}
         {canShare && (
-          <button
-            onClick={onShare}
-            className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600"
-          >
-            <Share2 size={18} />
-          </button>
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowShareMenu(!showShareMenu) }}
+              className="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600"
+            >
+              <Share2 size={18} />
+            </button>
+            {showShareMenu && (
+              <div className="absolute bottom-12 right-0 bg-gray-800 border border-cyan-500/30 rounded-xl shadow-lg overflow-hidden min-w-[140px]" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => { onShare(); setShowShareMenu(false) }}
+                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-700 text-gray-200 border-b border-gray-700"
+                >
+                  Image actuelle
+                </button>
+                {hasMultipleImages && (
+                  <button
+                    onClick={() => { onShareAll(); setShowShareMenu(false) }}
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-700 text-cyan-400"
+                  >
+                    Toutes les images
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -352,13 +382,33 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
       {canShare && (
         <>
           <div className="w-10 h-px bg-cyan-500/30 my-2" />
-          <button
-            onClick={onShare}
-            className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 transition-all"
-            title="Partager l'image"
-          >
-            <Share2 size={20} />
-          </button>
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowShareMenu(!showShareMenu) }}
+              className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 transition-all"
+              title="Partager l'image"
+            >
+              <Share2 size={20} />
+            </button>
+            {showShareMenu && (
+              <div className="absolute left-14 bottom-0 bg-gray-800 border border-cyan-500/30 rounded-xl shadow-lg overflow-hidden min-w-[160px] z-50" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => { onShare(); setShowShareMenu(false) }}
+                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-700 text-gray-200 border-b border-gray-700"
+                >
+                  Image actuelle
+                </button>
+                {hasMultipleImages && (
+                  <button
+                    onClick={() => { onShareAll(); setShowShareMenu(false) }}
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-700 text-cyan-400"
+                  >
+                    Toutes les images
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </>
       )}
     </aside>

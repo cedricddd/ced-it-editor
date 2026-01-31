@@ -13,6 +13,9 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
   const [isCropping, setIsCropping] = useState(false)
   const [backgroundImage, setBackgroundImage] = useState(null)
   const imageIdRef = useRef(null)
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const lastTouchDistance = useRef(null)
+  const lastPanPoint = useRef(null)
 
   // Initialiser le canvas
   useEffect(() => {
@@ -485,12 +488,126 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     }
   }, [canvas, activeTool, isDrawing, currentShape, startPoint, toolSettings, backgroundImage, cropRect])
 
+  // Pinch-to-zoom pour mobile
+  useEffect(() => {
+    if (!canvas || !containerRef.current) return
+
+    const container = containerRef.current
+    // Récupérer le canvas upper de Fabric.js (celui qui reçoit les événements)
+    const upperCanvas = container.querySelector('.upper-canvas') || container
+
+    const getDistance = (touches) => {
+      const dx = touches[0].clientX - touches[1].clientX
+      const dy = touches[0].clientY - touches[1].clientY
+      return Math.sqrt(dx * dx + dy * dy)
+    }
+
+    const getMidpoint = (touches) => {
+      return {
+        x: (touches[0].clientX + touches[1].clientX) / 2,
+        y: (touches[0].clientY + touches[1].clientY) / 2
+      }
+    }
+
+    let isPinching = false
+
+    const handleTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        isPinching = true
+        e.preventDefault()
+        e.stopPropagation()
+        lastTouchDistance.current = getDistance(e.touches)
+        lastPanPoint.current = getMidpoint(e.touches)
+      }
+    }
+
+    const handleTouchMove = (e) => {
+      if (e.touches.length === 2 && isPinching) {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const currentDistance = getDistance(e.touches)
+        const currentMidpoint = getMidpoint(e.touches)
+
+        if (lastTouchDistance.current) {
+          // Calculer le facteur de zoom
+          const scale = currentDistance / lastTouchDistance.current
+          let newZoom = canvas.getZoom() * scale
+
+          // Limiter le zoom entre 0.5x et 5x
+          newZoom = Math.min(Math.max(newZoom, 0.5), 5)
+
+          // Obtenir le point de zoom relatif au canvas
+          const rect = container.getBoundingClientRect()
+          const zoomPoint = {
+            x: currentMidpoint.x - rect.left,
+            y: currentMidpoint.y - rect.top
+          }
+
+          // Appliquer le zoom au point central du pinch
+          canvas.zoomToPoint({ x: zoomPoint.x, y: zoomPoint.y }, newZoom)
+          setZoomLevel(newZoom)
+        }
+
+        lastTouchDistance.current = currentDistance
+        lastPanPoint.current = currentMidpoint
+        canvas.renderAll()
+      }
+    }
+
+    const handleTouchEnd = (e) => {
+      if (e.touches.length < 2) {
+        isPinching = false
+        lastTouchDistance.current = null
+        lastPanPoint.current = null
+      }
+    }
+
+    // Double-tap pour reset zoom
+    let lastTap = 0
+    const handleDoubleTap = (e) => {
+      if (e.touches.length === 1) {
+        const currentTime = new Date().getTime()
+        const tapLength = currentTime - lastTap
+
+        if (tapLength < 300 && tapLength > 0) {
+          e.preventDefault()
+          // Reset zoom
+          canvas.setViewportTransform([1, 0, 0, 1, 0, 0])
+          setZoomLevel(1)
+          canvas.renderAll()
+        }
+        lastTap = currentTime
+      }
+    }
+
+    // Utiliser la phase de capture pour intercepter avant Fabric.js
+    upperCanvas.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true })
+    upperCanvas.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true })
+    upperCanvas.addEventListener('touchend', handleTouchEnd, { capture: true })
+    container.addEventListener('touchstart', handleDoubleTap, { passive: false })
+
+    return () => {
+      upperCanvas.removeEventListener('touchstart', handleTouchStart, { capture: true })
+      upperCanvas.removeEventListener('touchmove', handleTouchMove, { capture: true })
+      upperCanvas.removeEventListener('touchend', handleTouchEnd, { capture: true })
+      container.removeEventListener('touchstart', handleDoubleTap)
+    }
+  }, [canvas])
+
   return (
     <div
       ref={containerRef}
       className="flex-1 bg-gray-800 flex flex-col items-center justify-center p-1 md:p-2 overflow-hidden relative"
     >
-      <canvas ref={canvasRef} className="touch-none" />
+      <canvas ref={canvasRef} />
+
+      {/* Indicateur de zoom (mobile) */}
+      {zoomLevel !== 1 && (
+        <div className="absolute bottom-2 right-2 md:hidden bg-gray-900/80 px-2 py-1 rounded-lg text-xs text-cyan-400 border border-cyan-500/30">
+          {Math.round(zoomLevel * 100)}%
+        </div>
+      )}
 
       {/* Boutons de recadrage */}
       {isCropping && (
