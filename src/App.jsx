@@ -399,16 +399,14 @@ function App() {
             </div>
           )}
 
-          {/* Image Queue - avec marge pour la barre mobile */}
+          {/* Image Queue */}
           {images.length > 0 && (
-            <div className="pb-20 md:pb-0">
-              <ImageQueue
-                images={images}
-                currentIndex={currentIndex}
-                onSelect={handleChangeImage}
-                onRemove={handleRemoveImage}
-              />
-            </div>
+            <ImageQueue
+              images={images}
+              currentIndex={currentIndex}
+              onSelect={handleChangeImage}
+              onRemove={handleRemoveImage}
+            />
           )}
         </main>
 

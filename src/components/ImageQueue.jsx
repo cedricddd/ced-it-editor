@@ -12,7 +12,7 @@ function ImageQueue({ images, currentIndex, onSelect, onRemove }) {
   }
 
   return (
-    <div className="h-24 bg-gray-750 border-t border-cyan-500/20 flex items-center px-2 gap-2">
+    <div className="h-24 bg-gray-750 border-t border-cyan-500/20 flex items-center px-2 gap-2 mb-16 md:mb-0">
       <button
         onClick={() => scroll('left')}
         className="p-1.5 hover:bg-cyan-500/10 rounded-lg transition-colors text-gray-400 hover:text-cyan-400"
