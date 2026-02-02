@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import Toolbar from './components/Toolbar'
 import ImageCanvas from './components/ImageCanvas'
 import ImageQueue from './components/ImageQueue'
@@ -25,32 +25,29 @@ function App() {
     fontSize: 24
   })
 
-  // Stockage des annotations par image (persistance)
-  const annotationsRef = useRef({})
-
   const currentImage = images[currentIndex] || null
 
-  // Sauvegarder les annotations de l'image actuelle
+  // Sauvegarder les annotations de l'image actuelle dans le state
   const saveCurrentAnnotations = useCallback(() => {
     if (canvasRef && currentImage) {
       const objects = canvasRef.getObjects().filter(obj => obj.name !== 'backgroundImage')
-      if (objects.length > 0) {
-        annotationsRef.current[currentImage.id] = canvasRef.toJSON(['name'])
-      }
+      const annotations = objects.length > 0 ? canvasRef.toJSON(['name']) : null
+
+      setImages(prev => prev.map(img =>
+        img.id === currentImage.id
+          ? { ...img, annotations }
+          : img
+      ))
     }
   }, [canvasRef, currentImage])
-
-  // Charger les annotations pour une image
-  const getAnnotationsForImage = useCallback((imageId) => {
-    return annotationsRef.current[imageId] || null
-  }, [])
 
   const handleImportImages = useCallback((files) => {
     const newImages = Array.from(files).map((file, index) => ({
       id: Date.now() + index,
       file,
       url: URL.createObjectURL(file),
-      name: file.name || `capture_${Date.now() + index}.png`
+      name: file.name || `capture_${Date.now() + index}.png`,
+      annotations: null
     }))
     setImages(prev => [...prev, ...newImages])
     if (images.length === 0) {
@@ -91,12 +88,6 @@ function App() {
   }, [currentIndex, handleChangeImage])
 
   const handleRemoveImage = useCallback((index) => {
-    // Supprimer les annotations associées
-    const imageToRemove = images[index]
-    if (imageToRemove) {
-      delete annotationsRef.current[imageToRemove.id]
-    }
-
     setImages(prev => {
       const newImages = prev.filter((_, i) => i !== index)
       if (currentIndex >= newImages.length && newImages.length > 0) {
@@ -160,12 +151,16 @@ function App() {
   const handleBatchExport = useCallback(async (quality) => {
     if (!canvasRef || images.length === 0) return
 
+    // Sauvegarder les annotations de l'image actuelle avant de commencer
+    saveCurrentAnnotations()
+
     const totalImages = images.length
     let exportIndex = 0
 
     const exportAndNext = () => {
-      // Changer vers l'image à exporter
-      handleChangeImage(exportIndex)
+      // Changer vers l'image à exporter SANS sauvegarder
+      // (pour ne pas écraser les annotations des autres images)
+      setCurrentIndex(exportIndex)
 
       // Attendre que l'image charge, puis exporter
       setTimeout(() => {
@@ -181,7 +176,7 @@ function App() {
 
     // Démarrer l'export depuis la première image
     exportAndNext()
-  }, [canvasRef, images.length, handleExport, handleChangeImage])
+  }, [canvasRef, images.length, handleExport, saveCurrentAnnotations])
 
   // Supprimer les objets sélectionnés sur le canvas
   const handleDeleteSelected = useCallback(() => {
@@ -437,8 +432,7 @@ function App() {
               adjustments={adjustments}
               toolSettings={toolSettings}
               onCanvasReady={setCanvasRef}
-              savedAnnotations={getAnnotationsForImage(currentImage.id)}
-              onSaveAnnotations={saveCurrentAnnotations}
+              savedAnnotations={currentImage.annotations}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center bg-gray-800 p-4">

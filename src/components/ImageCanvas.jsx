@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { fabric } from 'fabric'
 import { Check, X, ZoomIn, ZoomOut, RotateCcw, Move } from 'lucide-react'
 
-function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasReady, savedAnnotations, onSaveAnnotations }) {
+function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasReady, savedAnnotations }) {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
   const [canvas, setCanvas] = useState(null)
@@ -13,7 +13,6 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
   const [isCropping, setIsCropping] = useState(false)
   const [backgroundImage, setBackgroundImage] = useState(null)
   const imageIdRef = useRef(null)
-  const savedAnnotationsRef = useRef(null)
   const [zoomLevel, setZoomLevel] = useState(1)
   const lastTouchDistance = useRef(null)
   const lastPanPoint = useRef(null)
@@ -47,21 +46,16 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     }
   }, [])
 
-  // Mettre à jour la ref des annotations sauvegardées
-  useEffect(() => {
-    savedAnnotationsRef.current = savedAnnotations
-  }, [savedAnnotations])
-
   // Charger l'image et restaurer les annotations
   useEffect(() => {
     if (!canvas || !image) return
 
-    // Note: La sauvegarde des annotations de l'image précédente est gérée par
-    // handleChangeImage dans App.jsx AVANT le changement d'index, pour éviter
-    // que currentImage pointe vers la mauvaise image lors de la sauvegarde.
-
     const currentImageId = image.id
     imageIdRef.current = currentImageId
+
+    // Capturer les annotations à restaurer pour cette image
+    // (avant l'appel asynchrone pour éviter les problèmes de timing)
+    const annotationsToRestore = savedAnnotations
 
     fabric.Image.fromURL(image.url, (img) => {
       // Vérifier que c'est toujours la bonne image (éviter les race conditions)
@@ -94,7 +88,6 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
       setIsCropping(false)
 
       // Restaurer les annotations APRÈS avoir chargé l'image de fond
-      const annotationsToRestore = savedAnnotationsRef.current
       if (annotationsToRestore?.objects) {
         const annotations = annotationsToRestore.objects.filter(obj => obj.name !== 'backgroundImage')
         if (annotations.length > 0) {
@@ -111,7 +104,7 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
 
       canvas.renderAll()
     }, { crossOrigin: 'anonymous' })
-  }, [canvas, image?.id, image?.url, onSaveAnnotations])
+  }, [canvas, image?.id, image?.url, savedAnnotations])
 
 
   // Appliquer les ajustements
