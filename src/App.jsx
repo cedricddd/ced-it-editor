@@ -433,6 +433,13 @@ function App() {
               toolSettings={toolSettings}
               onCanvasReady={setCanvasRef}
               savedAnnotations={currentImage.annotations}
+              onAnnotationsChange={(annotations) => {
+                setImages(prev => prev.map(img =>
+                  img.id === currentImage.id
+                    ? { ...img, annotations }
+                    : img
+                ))
+              }}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center bg-gray-800 p-4">

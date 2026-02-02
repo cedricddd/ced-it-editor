@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { fabric } from 'fabric'
 import { Check, X, ZoomIn, ZoomOut, RotateCcw, Move } from 'lucide-react'
 
-function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasReady, savedAnnotations }) {
+function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasReady, savedAnnotations, onAnnotationsChange }) {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
   const [canvas, setCanvas] = useState(null)
@@ -16,6 +16,15 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
   const [zoomLevel, setZoomLevel] = useState(1)
   const lastTouchDistance = useRef(null)
   const lastPanPoint = useRef(null)
+
+  // Sauvegarder les annotations après chaque modification
+  const saveAnnotations = useCallback(() => {
+    if (canvas && onAnnotationsChange) {
+      const objects = canvas.getObjects().filter(obj => obj.name !== 'backgroundImage' && obj.name !== 'cropRect')
+      const annotations = objects.length > 0 ? canvas.toJSON(['name']) : null
+      onAnnotationsChange(annotations)
+    }
+  }, [canvas, onAnnotationsChange])
 
   // Initialiser le canvas
   useEffect(() => {
@@ -46,6 +55,9 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     }
   }, [])
 
+  // Ref pour stocker les annotations à restaurer (mise à jour seulement au changement d'image)
+  const annotationsToRestoreRef = useRef(null)
+
   // Charger l'image et restaurer les annotations
   useEffect(() => {
     if (!canvas || !image) return
@@ -53,8 +65,9 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     const currentImageId = image.id
     imageIdRef.current = currentImageId
 
-    // Capturer les annotations à restaurer pour cette image
-    // (avant l'appel asynchrone pour éviter les problèmes de timing)
+    // Capturer les annotations au moment du changement d'image
+    // (on utilise savedAnnotations de la prop, pas une ref qui pourrait être périmée)
+    annotationsToRestoreRef.current = savedAnnotations
     const annotationsToRestore = savedAnnotations
 
     fabric.Image.fromURL(image.url, (img) => {
@@ -104,7 +117,7 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
 
       canvas.renderAll()
     }, { crossOrigin: 'anonymous' })
-  }, [canvas, image?.id, image?.url, savedAnnotations])
+  }, [canvas, image?.id, image?.url])
 
 
   // Appliquer les ajustements
@@ -348,6 +361,7 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
         setCurrentShape(null)
         setStartPoint(null)
         canvas.renderAll()
+        saveAnnotations()
       })
     }
 
@@ -466,6 +480,7 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
         setCurrentShape(null)
         setStartPoint(null)
         canvas.renderAll()
+        saveAnnotations()
       })
     }
 
@@ -486,15 +501,26 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
         text.enterEditing()
         // Sélectionner tout le texte pour qu'il soit remplacé à la frappe
         text.selectAll()
+        saveAnnotations()
       })
     }
+
+    // Sauvegarder quand un objet est modifié (déplacé, redimensionné, etc.)
+    const handleObjectModified = () => saveAnnotations()
+    canvas.on('object:modified', handleObjectModified)
+
+    // Sauvegarder après dessin libre
+    const handlePathCreated = () => saveAnnotations()
+    canvas.on('path:created', handlePathCreated)
 
     return () => {
       canvas.off('mouse:down')
       canvas.off('mouse:move')
       canvas.off('mouse:up')
+      canvas.off('object:modified', handleObjectModified)
+      canvas.off('path:created', handlePathCreated)
     }
-  }, [canvas, activeTool, isDrawing, currentShape, startPoint, toolSettings, backgroundImage, cropRect])
+  }, [canvas, activeTool, isDrawing, currentShape, startPoint, toolSettings, backgroundImage, cropRect, saveAnnotations])
 
   // Fonctions de zoom
   const handleZoomIn = useCallback(() => {
