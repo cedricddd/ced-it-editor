@@ -161,24 +161,27 @@ function App() {
     if (!canvasRef || images.length === 0) return
 
     const totalImages = images.length
-    let currentExportIndex = currentIndex
+    let exportIndex = 0
 
-    const exportNext = () => {
-      // Exporter l'image actuelle
+    const exportAndNext = () => {
+      // Changer vers l'image à exporter
+      handleChangeImage(exportIndex)
+
+      // Attendre que l'image charge, puis exporter
       setTimeout(() => {
-        handleExport(quality, currentExportIndex)
-        currentExportIndex++
+        handleExport(quality)
+        exportIndex++
 
-        // S'il reste des images, passer à la suivante
-        if (currentExportIndex < totalImages) {
-          handleChangeImage(currentExportIndex)
-          setTimeout(exportNext, 600) // Attendre que l'image soit chargée
+        // S'il reste des images, continuer
+        if (exportIndex < totalImages) {
+          setTimeout(exportAndNext, 300)
         }
-      }, 300)
+      }, 600)
     }
 
-    exportNext()
-  }, [canvasRef, images.length, currentIndex, handleExport, handleChangeImage])
+    // Démarrer l'export depuis la première image
+    exportAndNext()
+  }, [canvasRef, images.length, handleExport, handleChangeImage])
 
   // Supprimer les objets sélectionnés sur le canvas
   const handleDeleteSelected = useCallback(() => {
