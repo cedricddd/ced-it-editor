@@ -13,6 +13,7 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
   const [isCropping, setIsCropping] = useState(false)
   const [backgroundImage, setBackgroundImage] = useState(null)
   const imageIdRef = useRef(null)
+  const savedAnnotationsRef = useRef(null)
   const [zoomLevel, setZoomLevel] = useState(1)
   const lastTouchDistance = useRef(null)
   const lastPanPoint = useRef(null)
@@ -46,7 +47,12 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     }
   }, [])
 
-  // Charger l'image (sans annotations automatiques)
+  // Mettre à jour la ref des annotations sauvegardées
+  useEffect(() => {
+    savedAnnotationsRef.current = savedAnnotations
+  }, [savedAnnotations])
+
+  // Charger l'image et restaurer les annotations
   useEffect(() => {
     if (!canvas || !image) return
 
@@ -87,29 +93,27 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
       setBackgroundImage(img)
       setCropRect(null)
       setIsCropping(false)
+
+      // Restaurer les annotations APRÈS avoir chargé l'image de fond
+      const annotationsToRestore = savedAnnotationsRef.current
+      if (annotationsToRestore?.objects) {
+        const annotations = annotationsToRestore.objects.filter(obj => obj.name !== 'backgroundImage')
+        if (annotations.length > 0) {
+          fabric.util.enlivenObjects(annotations, (objects) => {
+            // Vérifier qu'on est toujours sur la bonne image
+            if (imageIdRef.current !== currentImageId) return
+            objects.forEach(obj => {
+              canvas.add(obj)
+            })
+            canvas.renderAll()
+          })
+        }
+      }
+
       canvas.renderAll()
     }, { crossOrigin: 'anonymous' })
   }, [canvas, image?.id, image?.url, onSaveAnnotations])
 
-  // Restaurer les annotations séparément (uniquement si savedAnnotations change pour cette image)
-  useEffect(() => {
-    if (!canvas || !image || !savedAnnotations?.objects) return
-
-    // Ne restaurer que si le canvas est vide (juste l'image de fond)
-    const existingAnnotations = canvas.getObjects().filter(obj => obj.name !== 'backgroundImage')
-    if (existingAnnotations.length > 0) return
-
-    const annotations = savedAnnotations.objects.filter(obj => obj.name !== 'backgroundImage')
-
-    if (annotations.length > 0) {
-      fabric.util.enlivenObjects(annotations, (objects) => {
-        objects.forEach(obj => {
-          canvas.add(obj)
-        })
-        canvas.renderAll()
-      })
-    }
-  }, [canvas, image?.id, savedAnnotations])
 
   // Appliquer les ajustements
   useEffect(() => {

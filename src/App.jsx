@@ -111,12 +111,36 @@ function App() {
 
     const qualityMap = { HQ: 1.0, MQ: 0.7, BQ: 0.4 }
     const imageName = images[imageIndex]?.name || 'image'
+    const multiplier = quality === 'HQ' ? 2 : quality === 'MQ' ? 1 : 0.5
 
-    const dataUrl = canvasRef.toDataURL({
-      format: 'png',
-      quality: qualityMap[quality],
-      multiplier: quality === 'HQ' ? 2 : quality === 'MQ' ? 1 : 0.5
-    })
+    // Trouver l'image de fond pour exporter seulement cette zone
+    const bgImage = canvasRef.getObjects().find(obj => obj.name === 'backgroundImage')
+
+    let dataUrl
+    if (bgImage) {
+      // Exporter seulement la zone de l'image de fond (sans le fond du canvas)
+      const left = bgImage.left
+      const top = bgImage.top
+      const width = bgImage.width * bgImage.scaleX
+      const height = bgImage.height * bgImage.scaleY
+
+      dataUrl = canvasRef.toDataURL({
+        format: 'png',
+        quality: qualityMap[quality],
+        multiplier: multiplier,
+        left: left,
+        top: top,
+        width: width,
+        height: height
+      })
+    } else {
+      // Fallback: exporter tout le canvas
+      dataUrl = canvasRef.toDataURL({
+        format: 'png',
+        quality: qualityMap[quality],
+        multiplier: multiplier
+      })
+    }
 
     const link = document.createElement('a')
     link.download = `${imageName.replace(/\.[^/.]+$/, '')}_${quality}.png`
@@ -136,23 +160,25 @@ function App() {
   const handleBatchExport = useCallback(async (quality) => {
     if (!canvasRef || images.length === 0) return
 
-    let exportedCount = 0
+    const totalImages = images.length
+    let currentExportIndex = currentIndex
 
     const exportNext = () => {
-      if (exportedCount < images.length) {
-        setTimeout(() => {
-          handleExport(quality)
-          exportedCount++
-          if (currentIndex < images.length - 1) {
-            handleNextImage()
-            setTimeout(exportNext, 500)
-          }
-        }, 300)
-      }
+      // Exporter l'image actuelle
+      setTimeout(() => {
+        handleExport(quality, currentExportIndex)
+        currentExportIndex++
+
+        // S'il reste des images, passer à la suivante
+        if (currentExportIndex < totalImages) {
+          handleChangeImage(currentExportIndex)
+          setTimeout(exportNext, 600) // Attendre que l'image soit chargée
+        }
+      }, 300)
     }
 
     exportNext()
-  }, [canvasRef, images, currentIndex, handleExport, handleNextImage])
+  }, [canvasRef, images.length, currentIndex, handleExport, handleChangeImage])
 
   // Supprimer les objets sélectionnés sur le canvas
   const handleDeleteSelected = useCallback(() => {
@@ -178,7 +204,25 @@ function App() {
     if (!canvasRef || !currentImage) return
 
     try {
-      const dataUrl = canvasRef.toDataURL({ format: 'png', quality: 1 })
+      // Trouver l'image de fond pour exporter seulement cette zone
+      const bgImage = canvasRef.getObjects().find(obj => obj.name === 'backgroundImage')
+      let dataUrl
+      if (bgImage) {
+        const left = bgImage.left
+        const top = bgImage.top
+        const width = bgImage.width * bgImage.scaleX
+        const height = bgImage.height * bgImage.scaleY
+        dataUrl = canvasRef.toDataURL({
+          format: 'png',
+          quality: 1,
+          left: left,
+          top: top,
+          width: width,
+          height: height
+        })
+      } else {
+        dataUrl = canvasRef.toDataURL({ format: 'png', quality: 1 })
+      }
       const response = await fetch(dataUrl)
       const blob = await response.blob()
       const file = new File([blob], `${currentImage.name || 'image'}.png`, { type: 'image/png' })
@@ -210,8 +254,25 @@ function App() {
     try {
       const files = []
 
-      // Convertir l'image actuelle du canvas
-      const currentDataUrl = canvasRef.toDataURL({ format: 'png', quality: 1 })
+      // Trouver l'image de fond pour exporter seulement cette zone
+      const bgImage = canvasRef.getObjects().find(obj => obj.name === 'backgroundImage')
+      let currentDataUrl
+      if (bgImage) {
+        const left = bgImage.left
+        const top = bgImage.top
+        const width = bgImage.width * bgImage.scaleX
+        const height = bgImage.height * bgImage.scaleY
+        currentDataUrl = canvasRef.toDataURL({
+          format: 'png',
+          quality: 1,
+          left: left,
+          top: top,
+          width: width,
+          height: height
+        })
+      } else {
+        currentDataUrl = canvasRef.toDataURL({ format: 'png', quality: 1 })
+      }
       const currentResponse = await fetch(currentDataUrl)
       const currentBlob = await currentResponse.blob()
       files.push(new File([currentBlob], `${currentImage?.name || 'image'}.png`, { type: 'image/png' }))
