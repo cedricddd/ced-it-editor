@@ -56,10 +56,9 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
   useEffect(() => {
     if (!canvas || !image) return
 
-    // Sauvegarder les annotations de l'image précédente avant de charger la nouvelle
-    if (imageIdRef.current && imageIdRef.current !== image.id && onSaveAnnotations) {
-      onSaveAnnotations()
-    }
+    // Note: La sauvegarde des annotations de l'image précédente est gérée par
+    // handleChangeImage dans App.jsx AVANT le changement d'index, pour éviter
+    // que currentImage pointe vers la mauvaise image lors de la sauvegarde.
 
     const currentImageId = image.id
     imageIdRef.current = currentImageId
