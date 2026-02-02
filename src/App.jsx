@@ -27,6 +27,15 @@ function App() {
 
   const currentImage = images[currentIndex] || null
 
+  // Callback pour sauvegarder les annotations (mémorisé pour éviter les re-renders)
+  const handleAnnotationsChange = useCallback((annotations, imageId) => {
+    setImages(prev => prev.map(img =>
+      img.id === imageId
+        ? { ...img, annotations }
+        : img
+    ))
+  }, [])
+
   // Sauvegarder les annotations de l'image actuelle dans le state
   const saveCurrentAnnotations = useCallback(() => {
     if (canvasRef && currentImage) {
@@ -433,13 +442,8 @@ function App() {
               toolSettings={toolSettings}
               onCanvasReady={setCanvasRef}
               savedAnnotations={currentImage.annotations}
-              onAnnotationsChange={(annotations) => {
-                setImages(prev => prev.map(img =>
-                  img.id === currentImage.id
-                    ? { ...img, annotations }
-                    : img
-                ))
-              }}
+              onAnnotationsChange={handleAnnotationsChange}
+              imageId={currentImage.id}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center bg-gray-800 p-4">

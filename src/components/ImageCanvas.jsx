@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { fabric } from 'fabric'
 import { Check, X, ZoomIn, ZoomOut, RotateCcw, Move } from 'lucide-react'
 
-function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasReady, savedAnnotations, onAnnotationsChange }) {
+function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasReady, savedAnnotations, onAnnotationsChange, imageId }) {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
   const [canvas, setCanvas] = useState(null)
@@ -19,12 +19,12 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
 
   // Sauvegarder les annotations après chaque modification
   const saveAnnotations = useCallback(() => {
-    if (canvas && onAnnotationsChange) {
+    if (canvas && onAnnotationsChange && imageId) {
       const objects = canvas.getObjects().filter(obj => obj.name !== 'backgroundImage' && obj.name !== 'cropRect')
       const annotations = objects.length > 0 ? canvas.toJSON(['name']) : null
-      onAnnotationsChange(annotations)
+      onAnnotationsChange(annotations, imageId)
     }
-  }, [canvas, onAnnotationsChange])
+  }, [canvas, onAnnotationsChange, imageId])
 
   // Initialiser le canvas
   useEffect(() => {
