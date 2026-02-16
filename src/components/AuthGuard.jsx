@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { checkAppAccess, redirectToSso } from '../lib/auth'
+import React, { useState, useEffect, createContext, useContext } from 'react'
+import { checkAppAccess, redirectToSso, clearToken } from '../lib/auth'
+
+export const AuthContext = createContext(null)
+export const useAuth = () => useContext(AuthContext)
 
 const SAAS_URL = import.meta.env.VITE_SAAS_URL || 'https://saas.ced-it.be'
 const APP_SLUG = import.meta.env.VITE_APP_SLUG || 'image-editor'
@@ -39,8 +42,13 @@ export default function AuthGuard({ children }) {
   /* ---- App autorisée ---- */
   const showTrialBanner = accessInfo?.accessType === 'trial' && !trialBannerDismissed
 
+  function handleLogout() {
+    clearToken()
+    redirectToSso()
+  }
+
   return (
-    <>
+    <AuthContext.Provider value={{ ...accessInfo, logout: handleLogout }}>
       {showTrialBanner && (
         <TrialBanner
           expiresAt={accessInfo.trialExpiresAt}
@@ -50,7 +58,7 @@ export default function AuthGuard({ children }) {
       <div style={showTrialBanner ? { paddingTop: '40px' } : undefined}>
         {children}
       </div>
-    </>
+    </AuthContext.Provider>
   )
 }
 

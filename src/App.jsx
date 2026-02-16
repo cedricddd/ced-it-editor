@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react'
+import { useAuth } from './components/AuthGuard'
 import Toolbar from './components/Toolbar'
 import ImageCanvas from './components/ImageCanvas'
 import ImageQueue from './components/ImageQueue'
@@ -7,6 +8,7 @@ import ExportModal from './components/ExportModal'
 import ToolSettings from './components/ToolSettings'
 
 function App() {
+  const auth = useAuth()
   const [images, setImages] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [activeTool, setActiveTool] = useState('select')
@@ -412,6 +414,20 @@ function App() {
           <span className="text-gray-400 text-xs md:text-sm">
             {images.length > 0 ? `${currentIndex + 1}/${images.length}` : ''}
           </span>
+          {auth?.email && (
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-xs text-gray-400 max-w-[140px] truncate">{auth.email}</span>
+              <button
+                onClick={auth.logout}
+                title="Se déconnecter"
+                className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-400 hover:text-red-400 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          )}
           <button
             onClick={handleCopyImage}
             disabled={!currentImage}
