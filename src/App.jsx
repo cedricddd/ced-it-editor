@@ -157,6 +157,26 @@ function App() {
     }, 300)
   }, [handleExport, handleNextImage])
 
+  const handleCopyImage = useCallback(async () => {
+    if (!canvasRef) return
+
+    const bgImage = canvasRef.getObjects().find(obj => obj.name === 'backgroundImage')
+    let dataUrl
+    if (bgImage) {
+      const left = bgImage.left
+      const top = bgImage.top
+      const width = bgImage.width * bgImage.scaleX
+      const height = bgImage.height * bgImage.scaleY
+      dataUrl = canvasRef.toDataURL({ format: 'png', quality: 1.0, left, top, width, height })
+    } else {
+      dataUrl = canvasRef.toDataURL({ format: 'png', quality: 1.0 })
+    }
+
+    const res = await fetch(dataUrl)
+    const blob = await res.blob()
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+  }, [canvasRef])
+
   const handleBatchExport = useCallback(async (quality) => {
     if (!canvasRef || images.length === 0) return
 
@@ -392,6 +412,16 @@ function App() {
           <span className="text-gray-400 text-xs md:text-sm">
             {images.length > 0 ? `${currentIndex + 1}/${images.length}` : ''}
           </span>
+          <button
+            onClick={handleCopyImage}
+            disabled={!currentImage}
+            title="Copier l'image modifiée"
+            className="p-1.5 md:p-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-cyan-400 transition-all"
+          >
+            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
           <button
             onClick={() => setShowExportModal(true)}
             disabled={!currentImage}

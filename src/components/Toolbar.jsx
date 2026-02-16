@@ -62,6 +62,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
     const files = e.target.files
     if (files && files.length > 0) {
       onImport(files)
+      setActiveTool('select')
     }
     e.target.value = ''
   }
@@ -105,6 +106,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
         if (blob) {
           const file = new File([blob], `capture_${Date.now()}.png`, { type: 'image/png' })
           onImport([file])
+          setActiveTool('select')
         }
       }, 'image/png')
 
@@ -162,6 +164,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
       if (blob) {
         const file = new File([blob], `webcam_${Date.now()}.png`, { type: 'image/png' })
         onImport([file])
+        setActiveTool('select')
       }
     }, 'image/png')
 
