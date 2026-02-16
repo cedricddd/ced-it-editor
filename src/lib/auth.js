@@ -75,10 +75,10 @@ export function isTokenExpiredLocally(token) {
 
 /**
  * Vérifie le token auprès de l'API SaaS.
- * Retourne le payload d'accès ou null si invalide.
+ * Retourne le payload d'accès, null si invalide (401), ou 'network_error' si erreur réseau.
  *
  * @param {string} token
- * @returns {Promise<{hasAccess: boolean, accessType: string, email: string, trialExpiresAt: string|null} | null>}
+ * @returns {Promise<{hasAccess: boolean, accessType: string, email: string, trialExpiresAt: string|null} | null | 'network_error'>}
  */
 export async function verifyTokenWithSaas(token) {
   try {
@@ -91,7 +91,7 @@ export async function verifyTokenWithSaas(token) {
 
     return await res.json()
   } catch {
-    return null
+    return 'network_error'
   }
 }
 
@@ -124,6 +124,17 @@ export async function checkAppAccess() {
 
   // 4. Vérification auprès du SaaS
   const access = await verifyTokenWithSaas(token)
+
+  // Erreur réseau : on fait confiance au token local (non expiré) pour éviter la boucle
+  if (access === 'network_error') {
+    const payload = decodeTokenPayload(token)
+    return {
+      status: 'authorized',
+      accessType: payload?.accessType || 'unknown',
+      email: payload?.email || '',
+      trialExpiresAt: payload?.trialExpiresAt || null,
+    }
+  }
 
   if (!access || !access.hasAccess) {
     clearToken()
