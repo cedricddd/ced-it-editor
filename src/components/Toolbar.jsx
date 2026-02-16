@@ -35,7 +35,6 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   const [isCapturing, setIsCapturing] = useState(false)
-  const [pendingStream, setPendingStream] = useState(null)
   const [showWebcam, setShowWebcam] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [showShareMenu, setShowShareMenu] = useState(false)
@@ -79,8 +78,35 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { mediaSource: 'screen' }
       })
-      // Stocker le stream — l'utilisateur cliquera sur le bouton flottant pour déclencher la capture
-      setPendingStream(stream)
+
+      const video = document.createElement('video')
+      video.srcObject = stream
+
+      await new Promise((resolve) => {
+        video.onloadedmetadata = () => {
+          video.play()
+          resolve()
+        }
+      })
+
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(video, 0, 0)
+
+      stream.getTracks().forEach(track => track.stop())
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], `capture_${Date.now()}.png`, { type: 'image/png' })
+          onImport([file])
+          setActiveTool('select')
+        }
+      }, 'image/png')
+
     } catch (err) {
       console.error('Erreur de capture:', err)
       if (err.name !== 'AbortError') {
@@ -88,47 +114,6 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
       }
     } finally {
       setIsCapturing(false)
-    }
-  }
-
-  const handlePendingCapture = async () => {
-    if (!pendingStream) return
-    const stream = pendingStream
-    setPendingStream(null)
-
-    const video = document.createElement('video')
-    video.srcObject = stream
-
-    await new Promise((resolve) => {
-      video.onloadedmetadata = () => {
-        video.play()
-        resolve()
-      }
-    })
-
-    await new Promise(resolve => setTimeout(resolve, 100))
-
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    const ctx = canvas.getContext('2d')
-    ctx.drawImage(video, 0, 0)
-
-    stream.getTracks().forEach(track => track.stop())
-
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], `capture_${Date.now()}.png`, { type: 'image/png' })
-        onImport([file])
-        setActiveTool('select')
-      }
-    }, 'image/png')
-  }
-
-  const handleCancelPending = () => {
-    if (pendingStream) {
-      pendingStream.getTracks().forEach(track => track.stop())
-      setPendingStream(null)
     }
   }
 
@@ -413,27 +398,6 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
       onChange={handleCameraCapture}
       className="hidden"
     />
-
-    {/* Overlay "Capturer maintenant" — affiché quand un onglet/écran est partagé */}
-    {pendingStream && (
-      <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-        <div className="flex flex-col items-center gap-4 pointer-events-auto">
-          <button
-            onClick={handlePendingCapture}
-            className="px-8 py-5 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 rounded-2xl font-bold text-white text-xl shadow-2xl animate-pulse flex items-center gap-3 transition-all"
-          >
-            <Monitor size={28} />
-            Capturer maintenant
-          </button>
-          <button
-            onClick={handleCancelPending}
-            className="px-4 py-2 bg-gray-800/80 hover:bg-gray-700 rounded-xl text-gray-400 hover:text-white text-sm transition-all"
-          >
-            Annuler
-          </button>
-        </div>
-      </div>
-    )}
 
     {/* Webcam Modal */}
     {showWebcam && (
