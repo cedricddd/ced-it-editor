@@ -414,20 +414,18 @@ function App() {
           <span className="text-gray-400 text-xs md:text-sm">
             {images.length > 0 ? `${currentIndex + 1}/${images.length}` : ''}
           </span>
-          {auth?.email && (
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs text-gray-400 max-w-[140px] truncate">{auth.email}</span>
-              <button
-                onClick={auth.logout}
-                title="Se déconnecter"
-                className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-400 hover:text-red-400 transition-all"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
-            </div>
-          )}
+          <a
+            href="https://saas.ced-it.be/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Ced-IT SaaS"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-400 hover:text-cyan-400 transition-all text-xs font-medium"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            SaaS
+          </a>
           <button
             onClick={handleCopyImage}
             disabled={!currentImage}
