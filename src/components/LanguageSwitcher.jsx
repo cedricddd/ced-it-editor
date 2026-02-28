@@ -40,7 +40,7 @@ export function LanguageSwitcher() {
             : 'border-cyan-500/20 bg-gray-700/50 text-gray-400 hover:border-cyan-500/40 hover:text-cyan-400'
         }`}
       >
-        <Globe2 size={14} className="text-cyan-400 flex-shrink-0" />
+        <Globe2 size={14} className="text-violet-400 flex-shrink-0" />
         <span className="text-base leading-none select-none">{current.flag}</span>
         <span className="hidden sm:inline tracking-wider font-bold">{current.nativeName}</span>
       </button>
