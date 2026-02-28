@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react'
 import { checkAppAccess, redirectToSso, clearToken } from '../lib/auth'
+import { useLanguage } from '../contexts/LanguageContext'
 
 export const AuthContext = createContext(null)
 export const useAuth = () => useContext(AuthContext)
@@ -15,11 +16,14 @@ const APP_SLUG = import.meta.env.VITE_APP_SLUG || 'image-editor'
  * - Redirige vers le SaaS si non autorisé
  */
 export default function AuthGuard({ children }) {
-  const [authState, setAuthState] = useState('loading') // 'loading' | 'authorized' | 'unauthorized'
+  const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true'
+
+  const [authState, setAuthState] = useState(disableAuth ? 'authorized' : 'loading') // 'loading' | 'authorized' | 'unauthorized'
   const [accessInfo, setAccessInfo] = useState(null)
   const [trialBannerDismissed, setTrialBannerDismissed] = useState(false)
 
   useEffect(() => {
+    if (disableAuth) return
     checkAppAccess().then((result) => {
       if (result.status === 'authorized') {
         setAuthState('authorized')
@@ -65,6 +69,7 @@ export default function AuthGuard({ children }) {
 /* ---- Composants internes ---- */
 
 function LoadingScreen() {
+  const { t } = useLanguage()
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0a1628]">
       <div className="flex flex-col items-center gap-4">
@@ -72,7 +77,7 @@ function LoadingScreen() {
           className="w-12 h-12 rounded-full border-4 border-[rgba(0,212,255,0.2)] border-t-[#00d4ff] animate-spin"
           style={{ animation: 'spin 0.8s linear infinite' }}
         />
-        <p className="text-[#94a3b8] text-sm">Vérification de l'accès…</p>
+        <p className="text-[#94a3b8] text-sm">{t.auth.loading}</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -80,6 +85,7 @@ function LoadingScreen() {
 }
 
 function UnauthorizedScreen() {
+  const { t } = useLanguage()
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0a1628] p-6">
       <div className="flex flex-col items-center gap-6 max-w-sm text-center">
@@ -90,10 +96,9 @@ function UnauthorizedScreen() {
           </svg>
         </div>
         <div>
-          <h2 className="text-white text-xl font-semibold mb-2">Accès requis</h2>
+          <h2 className="text-white text-xl font-semibold mb-2">{t.auth.accessRequired}</h2>
           <p className="text-[#94a3b8] text-sm">
-            Connectez-vous ou démarrez votre essai gratuit de 24h pour utiliser
-            l'éditeur d'images.
+            {t.auth.accessDesc}
           </p>
         </div>
         <button
@@ -101,13 +106,13 @@ function UnauthorizedScreen() {
           className="w-full py-3 px-6 rounded-lg text-white font-medium text-sm"
           style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #0066ff 100%)' }}
         >
-          Se connecter via Ced-IT
+          {t.auth.loginBtn}
         </button>
         <a
           href={`${SAAS_URL}/apps/${APP_SLUG}`}
           className="text-[#00d4ff] text-sm hover:underline"
         >
-          Voir les offres →
+          {t.auth.seeOffers}
         </a>
       </div>
     </div>
@@ -115,6 +120,7 @@ function UnauthorizedScreen() {
 }
 
 function TrialBanner({ expiresAt, onDismiss }) {
+  const { t } = useLanguage()
   const [hoursLeft, setHoursLeft] = useState(null)
 
   useEffect(() => {
@@ -128,6 +134,10 @@ function TrialBanner({ expiresAt, onDismiss }) {
     return () => clearInterval(interval)
   }, [expiresAt])
 
+  const hoursText = hoursLeft !== null
+    ? (hoursLeft > 1 ? t.auth.trialHoursPlural : t.auth.trialHours).replace('{{n}}', hoursLeft)
+    : '…'
+
   return (
     <div
       className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 text-sm"
@@ -139,22 +149,20 @@ function TrialBanner({ expiresAt, onDismiss }) {
           <polyline points="12 6 12 12 16 14" />
         </svg>
         <span>
-          Essai gratuit —{' '}
-          <span className="text-white font-medium">
-            {hoursLeft !== null ? `${hoursLeft}h restante${hoursLeft > 1 ? 's' : ''}` : '…'}
-          </span>
+          {t.auth.trialFree} —{' '}
+          <span className="text-white font-medium">{hoursText}</span>
         </span>
         <a
           href={`${SAAS_URL}/apps/${APP_SLUG}`}
           className="text-[#00d4ff] hover:underline ml-2"
         >
-          Passer à l'abonnement →
+          {t.auth.trialUpgrade}
         </a>
       </div>
       <button
         onClick={onDismiss}
         className="text-[#64748b] hover:text-white transition-colors"
-        aria-label="Fermer la bannière"
+        aria-label={t.auth.closeBanner}
       >
         ✕
       </button>

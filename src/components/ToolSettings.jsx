@@ -1,5 +1,6 @@
 import React from 'react'
 import { Palette, Minus, Type } from 'lucide-react'
+import { useLanguage } from '../contexts/LanguageContext'
 
 const presetColors = [
   '#00d4ff', // Cyan (Ced-IT accent)
@@ -18,6 +19,7 @@ const strokeWidths = [1, 2, 3, 5, 8, 12]
 const fontSizes = [12, 16, 20, 24, 32, 48, 64]
 
 function ToolSettings({ toolSettings, setToolSettings, activeTool }) {
+  const { t } = useLanguage()
   const showStrokeWidth = ['rectangle', 'circle', 'arrow', 'draw', 'highlight'].includes(activeTool)
   const showFontSize = activeTool === 'text'
   const showColor = ['rectangle', 'circle', 'arrow', 'draw', 'highlight', 'text'].includes(activeTool)
@@ -32,7 +34,7 @@ function ToolSettings({ toolSettings, setToolSettings, activeTool }) {
       {showColor && (
         <div className="flex items-center gap-2">
           <Palette size={16} className="text-cyan-400" />
-          <span className="text-sm text-gray-400">Couleur:</span>
+          <span className="text-sm text-gray-400">{t.toolSettings.color}</span>
           <div className="flex items-center gap-1">
             {presetColors.map((color) => (
               <button
@@ -52,7 +54,7 @@ function ToolSettings({ toolSettings, setToolSettings, activeTool }) {
               value={toolSettings.color}
               onChange={(e) => setToolSettings(prev => ({ ...prev, color: e.target.value }))}
               className="w-6 h-6 rounded-lg cursor-pointer border border-gray-600"
-              title="Couleur personnalisée"
+              title={t.toolSettings.customColor}
             />
           </div>
         </div>
@@ -62,7 +64,7 @@ function ToolSettings({ toolSettings, setToolSettings, activeTool }) {
       {showStrokeWidth && (
         <div className="flex items-center gap-2">
           <Minus size={16} className="text-cyan-400" />
-          <span className="text-sm text-gray-400">Épaisseur:</span>
+          <span className="text-sm text-gray-400">{t.toolSettings.strokeWidth}</span>
           <div className="flex items-center gap-1">
             {strokeWidths.map((width) => (
               <button
@@ -98,7 +100,7 @@ function ToolSettings({ toolSettings, setToolSettings, activeTool }) {
       {showFontSize && (
         <div className="flex items-center gap-2">
           <Type size={16} className="text-cyan-400" />
-          <span className="text-sm text-gray-400">Taille:</span>
+          <span className="text-sm text-gray-400">{t.toolSettings.fontSize}</span>
           <div className="flex items-center gap-1">
             {fontSizes.map((size) => (
               <button

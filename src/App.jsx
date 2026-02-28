@@ -6,9 +6,12 @@ import ImageQueue from './components/ImageQueue'
 import AdjustmentsPanel from './components/AdjustmentsPanel'
 import ExportModal from './components/ExportModal'
 import ToolSettings from './components/ToolSettings'
+import { LanguageSwitcher } from './components/LanguageSwitcher'
+import { useLanguage } from './contexts/LanguageContext'
 
 function App() {
   const auth = useAuth()
+  const { t } = useLanguage()
   const [images, setImages] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [activeTool, setActiveTool] = useState('select')
@@ -120,7 +123,6 @@ function App() {
 
     let dataUrl
     if (bgImage) {
-      // Exporter seulement la zone de l'image de fond (sans le fond du canvas)
       const left = bgImage.left
       const top = bgImage.top
       const width = bgImage.width * bgImage.scaleX
@@ -136,7 +138,6 @@ function App() {
         height: height
       })
     } else {
-      // Fallback: exporter tout le canvas
       dataUrl = canvasRef.toDataURL({
         format: 'png',
         quality: qualityMap[quality],
@@ -182,30 +183,24 @@ function App() {
   const handleBatchExport = useCallback(async (quality) => {
     if (!canvasRef || images.length === 0) return
 
-    // Sauvegarder les annotations de l'image actuelle avant de commencer
     saveCurrentAnnotations()
 
     const totalImages = images.length
     let exportIndex = 0
 
     const exportAndNext = () => {
-      // Changer vers l'image à exporter SANS sauvegarder
-      // (pour ne pas écraser les annotations des autres images)
       setCurrentIndex(exportIndex)
 
-      // Attendre que l'image charge, puis exporter
       setTimeout(() => {
         handleExport(quality)
         exportIndex++
 
-        // S'il reste des images, continuer
         if (exportIndex < totalImages) {
           setTimeout(exportAndNext, 300)
         }
       }, 600)
     }
 
-    // Démarrer l'export depuis la première image
     exportAndNext()
   }, [canvasRef, images.length, handleExport, saveCurrentAnnotations])
 
@@ -233,7 +228,6 @@ function App() {
     if (!canvasRef || !currentImage) return
 
     try {
-      // Trouver l'image de fond pour exporter seulement cette zone
       const bgImage = canvasRef.getObjects().find(obj => obj.name === 'backgroundImage')
       let dataUrl
       if (bgImage) {
@@ -260,10 +254,9 @@ function App() {
         await navigator.share({
           files: [file],
           title: 'Ced-IT Editor',
-          text: 'Image éditée avec Ced-IT Editor'
+          text: t.share.text
         })
       } else {
-        // Fallback: télécharger l'image
         const link = document.createElement('a')
         link.download = `${currentImage.name || 'image'}.png`
         link.href = dataUrl
@@ -274,7 +267,7 @@ function App() {
         console.error('Erreur de partage:', err)
       }
     }
-  }, [canvasRef, currentImage])
+  }, [canvasRef, currentImage, t])
 
   // Partager toutes les images
   const handleShareAll = useCallback(async () => {
@@ -283,7 +276,6 @@ function App() {
     try {
       const files = []
 
-      // Trouver l'image de fond pour exporter seulement cette zone
       const bgImage = canvasRef.getObjects().find(obj => obj.name === 'backgroundImage')
       let currentDataUrl
       if (bgImage) {
@@ -306,7 +298,6 @@ function App() {
       const currentBlob = await currentResponse.blob()
       files.push(new File([currentBlob], `${currentImage?.name || 'image'}.png`, { type: 'image/png' }))
 
-      // Ajouter les autres images de la file (images originales sans annotations du canvas)
       for (let i = 0; i < images.length; i++) {
         if (i !== currentIndex) {
           const img = images[i]
@@ -320,10 +311,9 @@ function App() {
         await navigator.share({
           files,
           title: 'Ced-IT Editor',
-          text: `${files.length} images éditées avec Ced-IT Editor`
+          text: t.share.textMultiple.replace('{{n}}', files.length)
         })
       } else {
-        // Fallback: télécharger chaque image
         files.forEach((file, index) => {
           const url = URL.createObjectURL(file)
           const link = document.createElement('a')
@@ -337,7 +327,7 @@ function App() {
         console.error('Erreur de partage multiple:', err)
       }
     }
-  }, [canvasRef, images, currentIndex, currentImage])
+  }, [canvasRef, images, currentIndex, currentImage, t])
 
   // Raccourcis clavier
   useEffect(() => {
@@ -358,7 +348,6 @@ function App() {
           handlePrevImage()
           break
         case 'delete':
-          // Suppr = supprimer la sélection sur le canvas
           handleDeleteSelected()
           break
         case '1':
@@ -407,13 +396,14 @@ function App() {
           <img src="/logo.png" alt="Ced-IT" className="h-12 md:h-14 w-auto" />
           <div className="hidden sm:flex flex-col">
             <h1 className="text-xl md:text-2xl font-bold text-cyan-400 leading-tight">Ced-IT</h1>
-            <span className="text-xs text-gray-400">Image Editor</span>
+            <span className="text-xs text-gray-400">{t.header.subtitle}</span>
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
           <span className="text-gray-400 text-xs md:text-sm">
             {images.length > 0 ? `${currentIndex + 1}/${images.length}` : ''}
           </span>
+          <LanguageSwitcher />
           <a
             href="https://saas.ced-it.be/"
             target="_blank"
@@ -429,7 +419,7 @@ function App() {
           <button
             onClick={handleCopyImage}
             disabled={!currentImage}
-            title="Copier l'image modifiée"
+            title={t.header.copyTitle}
             className="p-1.5 md:p-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-cyan-400 transition-all"
           >
             <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -441,8 +431,8 @@ function App() {
             disabled={!currentImage}
             className="px-3 md:px-5 py-1.5 md:py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-full text-xs md:text-sm font-medium transition-all shadow-glow hover:shadow-glow-lg"
           >
-            <span className="hidden md:inline">Exporter</span>
-            <span className="md:hidden">Export</span>
+            <span className="hidden md:inline">{t.header.exportBtn}</span>
+            <span className="md:hidden">{t.header.exportBtnShort}</span>
           </button>
           {/* Mobile panel toggle */}
           <button
@@ -498,15 +488,15 @@ function App() {
                   </svg>
                 </div>
                 <p className="text-gray-300 text-base md:text-lg mb-2 font-medium">
-                  Glissez-déposez des images
+                  {t.empty.drag}
                 </p>
                 <p className="text-gray-500 text-xs md:text-sm mb-4">
-                  Ou utilisez les boutons de la barre d'outils
+                  {t.empty.hint}
                 </p>
                 <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-400">
-                  <span className="px-2 py-1 bg-cyan-500/10 rounded">📁 Import</span>
-                  <span className="px-2 py-1 bg-green-500/10 rounded">📷 Caméra</span>
-                  <span className="px-2 py-1 bg-purple-500/10 rounded">🖥️ Capture</span>
+                  <span className="px-2 py-1 bg-cyan-500/10 rounded">{t.empty.importBadge}</span>
+                  <span className="px-2 py-1 bg-green-500/10 rounded">{t.empty.cameraBadge}</span>
+                  <span className="px-2 py-1 bg-purple-500/10 rounded">{t.empty.captureBadge}</span>
                 </div>
               </div>
             </div>

@@ -18,20 +18,10 @@ import {
   ChevronRight,
   Share2
 } from 'lucide-react'
-
-const tools = [
-  { id: 'select', icon: MousePointer2, label: 'Sélection (1)', shortcut: '1' },
-  { id: 'text', icon: Type, label: 'Texte (2)', shortcut: '2' },
-  { id: 'rectangle', icon: Square, label: 'Rectangle (3)', shortcut: '3' },
-  { id: 'circle', icon: Circle, label: 'Cercle (4)', shortcut: '4' },
-  { id: 'arrow', icon: ArrowRight, label: 'Flèche (5)', shortcut: '5' },
-  { id: 'highlight', icon: Highlighter, label: 'Surlignage (6)', shortcut: '6' },
-  { id: 'blur', icon: EyeOff, label: 'Masquage (7)', shortcut: '7' },
-  { id: 'draw', icon: Pencil, label: 'Dessin libre (8)', shortcut: '8' },
-  { id: 'crop', icon: Crop, label: 'Recadrage (9)', shortcut: '9' },
-]
+import { useLanguage } from '../contexts/LanguageContext'
 
 function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShare, onShareAll, canShare, hasMultipleImages }) {
+  const { t } = useLanguage()
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   const [isCapturing, setIsCapturing] = useState(false)
@@ -40,6 +30,18 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
   const [showShareMenu, setShowShareMenu] = useState(false)
   const videoRef = useRef(null)
   const webcamStreamRef = useRef(null)
+
+  const tools = [
+    { id: 'select',    icon: MousePointer2, label: `${t.toolbar.tools.select} (1)`,    shortcut: '1' },
+    { id: 'text',      icon: Type,          label: `${t.toolbar.tools.text} (2)`,      shortcut: '2' },
+    { id: 'rectangle', icon: Square,        label: `${t.toolbar.tools.rectangle} (3)`, shortcut: '3' },
+    { id: 'circle',    icon: Circle,        label: `${t.toolbar.tools.circle} (4)`,    shortcut: '4' },
+    { id: 'arrow',     icon: ArrowRight,    label: `${t.toolbar.tools.arrow} (5)`,     shortcut: '5' },
+    { id: 'highlight', icon: Highlighter,   label: `${t.toolbar.tools.highlight} (6)`, shortcut: '6' },
+    { id: 'blur',      icon: EyeOff,        label: `${t.toolbar.tools.blur} (7)`,      shortcut: '7' },
+    { id: 'draw',      icon: Pencil,        label: `${t.toolbar.tools.draw} (8)`,      shortcut: '8' },
+    { id: 'crop',      icon: Crop,          label: `${t.toolbar.tools.crop} (9)`,      shortcut: '9' },
+  ]
 
   // Fermer le menu de partage quand on clique ailleurs
   useEffect(() => {
@@ -69,7 +71,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
 
   const handleScreenCapture = async () => {
     if (!navigator.mediaDevices?.getDisplayMedia) {
-      alert('La capture d\'écran n\'est pas supportée sur ce navigateur')
+      alert(t.toolbar.screenNotSupported)
       return
     }
 
@@ -110,7 +112,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
     } catch (err) {
       console.error('Erreur de capture:', err)
       if (err.name !== 'AbortError') {
-        alert('Erreur lors de la capture d\'écran')
+        alert(t.toolbar.screenError)
       }
     } finally {
       setIsCapturing(false)
@@ -118,16 +120,15 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
   }
 
   const handleWebcamStart = async () => {
-    // Vérifier si on est en HTTPS ou localhost
     const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
     if (!isSecure) {
-      alert('La webcam nécessite une connexion sécurisée (HTTPS).\n\nPour l\'utiliser :\n- Accédez via https:// ou\n- Utilisez localhost')
+      alert(t.toolbar.webcamHttpsRequired)
       return
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      alert('La webcam n\'est pas supportée sur ce navigateur')
+      alert(t.toolbar.webcamNotSupported)
       return
     }
 
@@ -140,9 +141,9 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
     } catch (err) {
       console.error('Erreur webcam:', err)
       if (err.name === 'NotAllowedError') {
-        alert('Accès à la webcam refusé.\nVeuillez autoriser l\'accès dans les paramètres du navigateur.')
+        alert(t.toolbar.webcamDenied)
       } else {
-        alert('Impossible d\'accéder à la webcam')
+        alert(t.toolbar.webcamError)
       }
     }
   }
@@ -243,14 +244,14 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
                   onClick={() => { onShare(); setShowShareMenu(false) }}
                   className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-700 text-gray-200 border-b border-gray-700"
                 >
-                  Image actuelle
+                  {t.toolbar.shareCurrentImage}
                 </button>
                 {hasMultipleImages && (
                   <button
                     onClick={() => { onShareAll(); setShowShareMenu(false) }}
                     className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-700 text-cyan-400"
                   >
-                    Toutes les images
+                    {t.toolbar.shareAllImages}
                   </button>
                 )}
               </div>
@@ -267,14 +268,14 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
             onClick={handleScreenCapture}
             disabled={isCapturing}
             className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-600"
-            title="Capture d'écran"
+            title={t.toolbar.screen}
           >
             <Monitor size={20} />
           </button>
           <button
             onClick={handleWebcamStart}
             className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600"
-            title="Webcam"
+            title={t.toolbar.webcam}
           >
             <Video size={20} />
           </button>
@@ -308,7 +309,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
       <button
         onClick={() => fileInputRef.current?.click()}
         className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 transition-all shadow-glow hover:shadow-glow-lg"
-        title="Importer des images"
+        title={t.toolbar.import}
       >
         <Upload size={20} />
       </button>
@@ -317,7 +318,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
       <button
         onClick={() => cameraInputRef.current?.click()}
         className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 transition-all"
-        title="Prendre une photo"
+        title={t.toolbar.camera}
       >
         <Camera size={20} />
       </button>
@@ -331,7 +332,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
             ? 'bg-gray-600 cursor-wait'
             : 'bg-gradient-to-br from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500'
         }`}
-        title="Capture d'écran"
+        title={t.toolbar.screen}
       >
         <Monitor size={20} />
       </button>
@@ -340,7 +341,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
       <button
         onClick={handleWebcamStart}
         className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 transition-all"
-        title="Webcam"
+        title={t.toolbar.webcam}
       >
         <Video size={20} />
       </button>
@@ -373,12 +374,10 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
       <button
         onClick={onDeleteSelected}
         className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 transition-all"
-        title="Supprimer la sélection (Suppr)"
+        title={t.toolbar.delete}
       >
         <Trash2 size={20} />
       </button>
-
-      {/* Share Button masqué sur desktop - disponible uniquement sur mobile/tablette */}
     </aside>
 
     {/* Hidden inputs */}
@@ -404,7 +403,7 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="bg-gray-750 rounded-2xl p-4 border border-cyan-500/20 max-w-2xl w-full mx-4">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold text-cyan-400">Webcam</h3>
+            <h3 className="text-lg font-bold text-cyan-400">{t.toolbar.webcam}</h3>
             <button
               onClick={handleWebcamClose}
               className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white"
@@ -429,14 +428,14 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
               onClick={handleWebcamClose}
               className="flex-1 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 rounded-xl font-medium transition-all"
             >
-              Annuler
+              {t.toolbar.cancel}
             </button>
             <button
               onClick={handleWebcamCapture}
               className="flex-1 px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl font-medium transition-all flex items-center justify-center gap-2"
             >
               <Camera size={18} />
-              Capturer
+              {t.toolbar.webcamCapture}
             </button>
           </div>
         </div>

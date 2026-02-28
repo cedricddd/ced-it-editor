@@ -1,16 +1,18 @@
 import React, { useState } from 'react'
 import { X, Download, SkipForward, Layers } from 'lucide-react'
-
-const qualityOptions = [
-  { id: 'HQ', label: 'Haute Qualité', description: 'PNG 2x - Meilleure qualité', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
-  { id: 'MQ', label: 'Qualité Moyenne', description: 'PNG 1x - Équilibré', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
-  { id: 'BQ', label: 'Basse Qualité', description: 'PNG 0.5x - Taille réduite', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-]
+import { useLanguage } from '../contexts/LanguageContext'
 
 function ExportModal({ onClose, onExport, onExportAndNext, onBatchExport, hasNextImage, totalImages, imageName }) {
+  const { t } = useLanguage()
   const [selectedQuality, setSelectedQuality] = useState('MQ')
   const [autoAdvance, setAutoAdvance] = useState(true)
   const [exportMode, setExportMode] = useState('single')
+
+  const qualityOptions = [
+    { id: 'HQ', label: t.export.hq.label, description: t.export.hq.desc, color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+    { id: 'MQ', label: t.export.mq.label, description: t.export.mq.desc, color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
+    { id: 'BQ', label: t.export.bq.label, description: t.export.bq.desc, color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  ]
 
   const handleExport = () => {
     if (exportMode === 'batch' && totalImages > 1) {
@@ -42,7 +44,7 @@ function ExportModal({ onClose, onExport, onExportAndNext, onBatchExport, hasNex
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-cyan-400">Exporter</h2>
+          <h2 className="text-xl font-bold text-cyan-400">{t.export.title}</h2>
           <button
             onClick={onClose}
             className="p-1.5 hover:bg-cyan-500/10 rounded-lg transition-colors text-gray-400 hover:text-cyan-400"
@@ -53,14 +55,14 @@ function ExportModal({ onClose, onExport, onExportAndNext, onBatchExport, hasNex
 
         {imageName && (
           <p className="text-sm text-gray-400 mb-4 truncate">
-            Fichier : <span className="text-gray-300">{imageName}</span>
+            {t.export.file} <span className="text-gray-300">{imageName}</span>
           </p>
         )}
 
         {/* Mode d'export */}
         {totalImages > 1 && (
           <div className="mb-6">
-            <p className="text-sm text-gray-400 mb-2">Mode d'export</p>
+            <p className="text-sm text-gray-400 mb-2">{t.export.mode}</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setExportMode('single')}
@@ -72,7 +74,7 @@ function ExportModal({ onClose, onExport, onExportAndNext, onBatchExport, hasNex
               >
                 <Download size={20} className={`mx-auto mb-1 ${exportMode === 'single' ? 'text-cyan-400' : 'text-gray-400'}`} />
                 <span className={`text-sm font-medium ${exportMode === 'single' ? 'text-cyan-400' : 'text-gray-300'}`}>
-                  Image actuelle
+                  {t.export.currentImage}
                 </span>
               </button>
               <button
@@ -85,7 +87,7 @@ function ExportModal({ onClose, onExport, onExportAndNext, onBatchExport, hasNex
               >
                 <Layers size={20} className={`mx-auto mb-1 ${exportMode === 'batch' ? 'text-purple-400' : 'text-gray-400'}`} />
                 <span className={`text-sm font-medium ${exportMode === 'batch' ? 'text-purple-400' : 'text-gray-300'}`}>
-                  Toutes ({totalImages})
+                  {t.export.allImages} ({totalImages})
                 </span>
               </button>
             </div>
@@ -93,7 +95,7 @@ function ExportModal({ onClose, onExport, onExportAndNext, onBatchExport, hasNex
         )}
 
         {/* Qualité */}
-        <p className="text-sm text-gray-400 mb-2">Qualité d'export</p>
+        <p className="text-sm text-gray-400 mb-2">{t.export.quality}</p>
         <div className="space-y-3 mb-6">
           {qualityOptions.map((option) => (
             <button
@@ -133,7 +135,7 @@ function ExportModal({ onClose, onExport, onExportAndNext, onBatchExport, hasNex
               className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-gray-800"
             />
             <span className="text-sm text-gray-300 group-hover:text-gray-200 transition-colors">
-              Passer automatiquement à l'image suivante après l'export
+              {t.export.autoAdvance}
             </span>
           </label>
         )}
@@ -142,7 +144,7 @@ function ExportModal({ onClose, onExport, onExportAndNext, onBatchExport, hasNex
         {exportMode === 'batch' && (
           <div className="mb-6 p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl">
             <p className="text-sm text-purple-300">
-              L'export par lot va télécharger les {totalImages} images une par une avec la qualité sélectionnée.
+              {t.export.batchInfo.replace('{{n}}', totalImages)}
             </p>
           </div>
         )}
@@ -152,7 +154,7 @@ function ExportModal({ onClose, onExport, onExportAndNext, onBatchExport, hasNex
             onClick={onClose}
             className="flex-1 px-4 py-2.5 bg-gray-700/50 hover:bg-gray-700 border border-gray-600/50 rounded-xl font-medium transition-all"
           >
-            Annuler
+            {t.export.cancel}
           </button>
           <button
             onClick={handleExport}
@@ -165,17 +167,17 @@ function ExportModal({ onClose, onExport, onExportAndNext, onBatchExport, hasNex
             {exportMode === 'batch' ? (
               <>
                 <Layers size={18} />
-                Exporter tout
+                {t.export.exportAll}
               </>
             ) : autoAdvance && hasNextImage ? (
               <>
                 <SkipForward size={18} />
-                Exporter & Suivant
+                {t.export.exportAndNext}
               </>
             ) : (
               <>
                 <Download size={18} />
-                Exporter
+                {t.export.export}
               </>
             )}
           </button>
