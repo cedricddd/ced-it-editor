@@ -27,7 +27,9 @@ function App() {
   const [toolSettings, setToolSettings] = useState({
     color: '#00d4ff',
     strokeWidth: 3,
-    fontSize: 24
+    fontSize: 24,
+    lassoBlurIntensity: 10,
+    lassoBlurMode: 'pixelate',
   })
 
   const currentImage = images[currentIndex] || null
@@ -376,6 +378,12 @@ function App() {
           break
         case '9':
           setActiveTool('crop')
+          break
+        case '0':
+          setActiveTool('lasso-blur')
+          break
+        case 'e':
+          setActiveTool('lasso-erase')
           break
       }
     }

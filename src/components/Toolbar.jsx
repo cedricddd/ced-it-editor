@@ -14,6 +14,8 @@ import {
   Monitor,
   Video,
   EyeOff,
+  Lasso,
+  Eraser,
   ChevronLeft,
   ChevronRight,
   Share2
@@ -38,9 +40,11 @@ function Toolbar({ activeTool, setActiveTool, onImport, onDeleteSelected, onShar
     { id: 'circle',    icon: Circle,        label: `${t.toolbar.tools.circle} (4)`,    shortcut: '4' },
     { id: 'arrow',     icon: ArrowRight,    label: `${t.toolbar.tools.arrow} (5)`,     shortcut: '5' },
     { id: 'highlight', icon: Highlighter,   label: `${t.toolbar.tools.highlight} (6)`, shortcut: '6' },
-    { id: 'blur',      icon: EyeOff,        label: `${t.toolbar.tools.blur} (7)`,      shortcut: '7' },
-    { id: 'draw',      icon: Pencil,        label: `${t.toolbar.tools.draw} (8)`,      shortcut: '8' },
-    { id: 'crop',      icon: Crop,          label: `${t.toolbar.tools.crop} (9)`,      shortcut: '9' },
+    { id: 'blur',       icon: EyeOff,  label: `${t.toolbar.tools.blur} (7)`,       shortcut: '7' },
+    { id: 'draw',       icon: Pencil,  label: `${t.toolbar.tools.draw} (8)`,       shortcut: '8' },
+    { id: 'crop',       icon: Crop,    label: `${t.toolbar.tools.crop} (9)`,       shortcut: '9' },
+    { id: 'lasso-blur',  icon: Lasso,   label: `${t.toolbar.tools.lasso_blur} (0)`,  shortcut: '0' },
+    { id: 'lasso-erase', icon: Eraser,  label: `${t.toolbar.tools.lasso_erase} (E)`, shortcut: 'e' },
   ]
 
   // Fermer le menu de partage quand on clique ailleurs

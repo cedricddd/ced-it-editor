@@ -1,5 +1,5 @@
 import React from 'react'
-import { Palette, Minus, Type } from 'lucide-react'
+import { Palette, Minus, Type, Sliders } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 
 const presetColors = [
@@ -23,8 +23,9 @@ function ToolSettings({ toolSettings, setToolSettings, activeTool }) {
   const showStrokeWidth = ['rectangle', 'circle', 'arrow', 'draw', 'highlight'].includes(activeTool)
   const showFontSize = activeTool === 'text'
   const showColor = ['rectangle', 'circle', 'arrow', 'draw', 'highlight', 'text'].includes(activeTool)
+  const showLassoBlur = activeTool === 'lasso-blur'
 
-  if (!showColor && !showStrokeWidth && !showFontSize) {
+  if (!showColor && !showStrokeWidth && !showFontSize && !showLassoBlur) {
     return null
   }
 
@@ -124,6 +125,50 @@ function ToolSettings({ toolSettings, setToolSettings, activeTool }) {
             onChange={(e) => setToolSettings(prev => ({ ...prev, fontSize: parseInt(e.target.value) || 24 }))}
             className="w-16 px-2 py-1 bg-gray-700/50 border border-cyan-500/30 rounded-lg text-sm text-gray-200 focus:border-cyan-500 focus:outline-none"
           />
+        </div>
+      )}
+
+      {/* Lasso Blur settings */}
+      {showLassoBlur && (
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Sliders size={16} className="text-cyan-400" />
+            <span className="text-sm text-gray-400">{t.toolSettings.lassoBlurMode}</span>
+            <div className="flex rounded-lg overflow-hidden border border-cyan-500/30">
+              <button
+                onClick={() => setToolSettings(prev => ({ ...prev, lassoBlurMode: 'blur' }))}
+                className={`px-3 py-1 text-xs font-medium transition-all ${
+                  toolSettings.lassoBlurMode === 'blur'
+                    ? 'bg-cyan-500 text-white'
+                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {t.toolSettings.lassoBlurModeBlur}
+              </button>
+              <button
+                onClick={() => setToolSettings(prev => ({ ...prev, lassoBlurMode: 'pixelate' }))}
+                className={`px-3 py-1 text-xs font-medium transition-all ${
+                  toolSettings.lassoBlurMode === 'pixelate'
+                    ? 'bg-cyan-500 text-white'
+                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {t.toolSettings.lassoBlurModePixelate}
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400">{t.toolSettings.lassoBlurIntensity}</span>
+            <input
+              type="range"
+              min="1"
+              max="30"
+              value={toolSettings.lassoBlurIntensity}
+              onChange={(e) => setToolSettings(prev => ({ ...prev, lassoBlurIntensity: parseInt(e.target.value) }))}
+              className="w-24 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+            />
+            <span className="text-xs text-cyan-400 w-6">{toolSettings.lassoBlurIntensity}</span>
+          </div>
         </div>
       )}
     </div>

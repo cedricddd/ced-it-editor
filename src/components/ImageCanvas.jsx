@@ -16,6 +16,8 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
   const [zoomLevel, setZoomLevel] = useState(1)
   const lastTouchDistance = useRef(null)
   const lastPanPoint = useRef(null)
+  const lassoPointsRef = useRef([])
+  const lassoPreviewRef = useRef(null)
 
   // Sauvegarder les annotations après chaque modification
   const saveAnnotations = useCallback(() => {
@@ -225,6 +227,104 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     }
   }, [canvas, cropRect])
 
+  // Appliquer le flou/pixellisation sur la zone lasso
+  const applyLassoBlur = useCallback((points, intensity, mode) => {
+    if (!canvas || !backgroundImage || points.length < 3) return
+
+    const bgImg = backgroundImage
+    const imgLeft = bgImg.left
+    const imgTop = bgImg.top
+    const imgScaleX = bgImg.scaleX
+    const imgScaleY = bgImg.scaleY
+
+    const xs = points.map(p => p.x)
+    const ys = points.map(p => p.y)
+    const minX = Math.min(...xs)
+    const maxX = Math.max(...xs)
+    const minY = Math.min(...ys)
+    const maxY = Math.max(...ys)
+    const boxW = Math.ceil(maxX - minX)
+    const boxH = Math.ceil(maxY - minY)
+
+    if (boxW < 5 || boxH < 5) return
+
+    // Coordonnées dans l'image source originale
+    const srcX = (minX - imgLeft) / imgScaleX
+    const srcY = (minY - imgTop) / imgScaleY
+    const srcW = boxW / imgScaleX
+    const srcH = boxH / imgScaleY
+
+    const originalImg = new Image()
+    originalImg.crossOrigin = 'anonymous'
+    originalImg.onload = () => {
+      const offCanvas = document.createElement('canvas')
+      offCanvas.width = boxW
+      offCanvas.height = boxH
+      const ctx = offCanvas.getContext('2d')
+
+      if (mode === 'pixelate') {
+        const pixelSize = Math.max(2, intensity)
+        const smallW = Math.max(1, Math.floor(boxW / pixelSize))
+        const smallH = Math.max(1, Math.floor(boxH / pixelSize))
+
+        const tmpCanvas = document.createElement('canvas')
+        tmpCanvas.width = smallW
+        tmpCanvas.height = smallH
+        const tmpCtx = tmpCanvas.getContext('2d')
+        tmpCtx.imageSmoothingEnabled = true
+        tmpCtx.drawImage(originalImg, srcX, srcY, srcW, srcH, 0, 0, smallW, smallH)
+
+        ctx.imageSmoothingEnabled = false
+        ctx.drawImage(tmpCanvas, 0, 0, smallW, smallH, 0, 0, boxW, boxH)
+      } else {
+        // Dessin sur un canvas élargi (padding = rayon du flou) pour éviter
+        // que les bords se mélangent avec la transparence → effet grisâtre
+        const blurRadius = Math.max(1, intensity * 2)
+        const pad = blurRadius * 2
+        const padSrcX = srcX - pad / imgScaleX
+        const padSrcY = srcY - pad / imgScaleY
+        const padSrcW = srcW + 2 * pad / imgScaleX
+        const padSrcH = srcH + 2 * pad / imgScaleY
+
+        const padCanvas = document.createElement('canvas')
+        padCanvas.width = boxW + pad * 2
+        padCanvas.height = boxH + pad * 2
+        const padCtx = padCanvas.getContext('2d')
+        padCtx.filter = `blur(${blurRadius}px)`
+        padCtx.drawImage(originalImg, padSrcX, padSrcY, padSrcW, padSrcH, 0, 0, padCanvas.width, padCanvas.height)
+        padCtx.filter = 'none'
+
+        // Recadrer au centre (supprimer le padding)
+        ctx.drawImage(padCanvas, pad, pad, boxW, boxH, 0, 0, boxW, boxH)
+      }
+
+      fabric.Image.fromURL(offCanvas.toDataURL(), (fabricImg) => {
+        // Le clip path de Fabric est en coordonnées locales centrées :
+        // l'origine est le centre de l'objet, pas son coin haut-gauche
+        const localPoints = points.map(p => ({
+          x: p.x - minX - boxW / 2,
+          y: p.y - minY - boxH / 2,
+        }))
+        const clipPolygon = new fabric.Polygon(localPoints, {
+          absolutePositioned: false,
+        })
+        fabricImg.set({
+          left: minX,
+          top: minY,
+          selectable: true,
+          name: 'lassoBlur',
+          objectCaching: true,
+        })
+        fabricImg.clipPath = clipPolygon
+
+        canvas.add(fabricImg)
+        canvas.renderAll()
+        saveAnnotations()
+      })
+    }
+    originalImg.src = image.url
+  }, [canvas, backgroundImage, image, saveAnnotations])
+
   // Gérer les outils de dessin
   useEffect(() => {
     if (!canvas) return
@@ -239,7 +339,7 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     // Désactiver le touch-action sur le canvas quand un outil de dessin est actif
     const upperCanvas = canvas.upperCanvasEl
     if (upperCanvas) {
-      if (['rectangle', 'circle', 'arrow', 'highlight', 'blur', 'crop', 'draw'].includes(activeTool)) {
+      if (['rectangle', 'circle', 'arrow', 'highlight', 'blur', 'crop', 'draw', 'lasso-blur', 'lasso-erase'].includes(activeTool)) {
         upperCanvas.style.touchAction = 'none'
       } else {
         upperCanvas.style.touchAction = 'manipulation'
@@ -362,6 +462,172 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
         setStartPoint(null)
         canvas.renderAll()
         saveAnnotations()
+      })
+    }
+
+    // Outil lasso flou
+    if (activeTool === 'lasso-blur') {
+      canvas.defaultCursor = 'crosshair'
+      let lastPointTime = 0
+
+      canvas.on('mouse:down', (opt) => {
+        const pointer = canvas.getPointer(opt.e)
+        lassoPointsRef.current = [pointer]
+
+        const preview = new fabric.Polyline([pointer], {
+          stroke: '#00d4ff',
+          strokeWidth: 2,
+          fill: 'rgba(0, 212, 255, 0.08)',
+          strokeDashArray: [6, 3],
+          selectable: false,
+          evented: false,
+          objectCaching: false,
+          name: '_lassoPreview',
+        })
+        canvas.add(preview)
+        lassoPreviewRef.current = preview
+        setIsDrawing(true)
+      })
+
+      canvas.on('mouse:move', (opt) => {
+        if (!lassoPreviewRef.current) return
+
+        const now = Date.now()
+        if (now - lastPointTime < 20) return  // ~50fps throttle
+        lastPointTime = now
+
+        const pointer = canvas.getPointer(opt.e)
+        const pts = lassoPointsRef.current
+        if (pts.length > 0) {
+          const last = pts[pts.length - 1]
+          const dist = Math.hypot(pointer.x - last.x, pointer.y - last.y)
+          if (dist < 4) return  // skip if too close to last point
+        }
+        pts.push(pointer)
+
+        // Recréer la polyline pour la mise à jour visuelle
+        canvas.remove(lassoPreviewRef.current)
+        const preview = new fabric.Polyline([...pts], {
+          stroke: '#00d4ff',
+          strokeWidth: 2,
+          fill: 'rgba(0, 212, 255, 0.08)',
+          strokeDashArray: [6, 3],
+          selectable: false,
+          evented: false,
+          objectCaching: false,
+          name: '_lassoPreview',
+        })
+        canvas.add(preview)
+        lassoPreviewRef.current = preview
+        canvas.renderAll()
+      })
+
+      canvas.on('mouse:up', () => {
+        if (lassoPreviewRef.current) {
+          canvas.remove(lassoPreviewRef.current)
+          lassoPreviewRef.current = null
+        }
+        const pts = lassoPointsRef.current
+        lassoPointsRef.current = []
+        setIsDrawing(false)
+
+        const intensity = toolSettings?.lassoBlurIntensity || 10
+        const mode = toolSettings?.lassoBlurMode || 'pixelate'
+        applyLassoBlur(pts, intensity, mode)
+        canvas.renderAll()
+      })
+    }
+
+    // Outil lasso effacer flou
+    if (activeTool === 'lasso-erase') {
+      canvas.defaultCursor = 'crosshair'
+
+      // Test point-dans-polygone (ray casting)
+      const pointInPolygon = (point, polygon) => {
+        let inside = false
+        const n = polygon.length
+        for (let i = 0, j = n - 1; i < n; j = i++) {
+          const xi = polygon[i].x, yi = polygon[i].y
+          const xj = polygon[j].x, yj = polygon[j].y
+          const intersect = ((yi > point.y) !== (yj > point.y)) &&
+            (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi)
+          if (intersect) inside = !inside
+        }
+        return inside
+      }
+
+      let lastPointTime = 0
+
+      canvas.on('mouse:down', (opt) => {
+        const pointer = canvas.getPointer(opt.e)
+        lassoPointsRef.current = [pointer]
+
+        const preview = new fabric.Polyline([pointer], {
+          stroke: '#ff4444',
+          strokeWidth: 2,
+          fill: 'rgba(255, 68, 68, 0.08)',
+          strokeDashArray: [6, 3],
+          selectable: false,
+          evented: false,
+          objectCaching: false,
+          name: '_lassoPreview',
+        })
+        canvas.add(preview)
+        lassoPreviewRef.current = preview
+        setIsDrawing(true)
+      })
+
+      canvas.on('mouse:move', (opt) => {
+        if (!lassoPreviewRef.current) return
+
+        const now = Date.now()
+        if (now - lastPointTime < 20) return
+        lastPointTime = now
+
+        const pointer = canvas.getPointer(opt.e)
+        const pts = lassoPointsRef.current
+        if (pts.length > 0) {
+          const last = pts[pts.length - 1]
+          if (Math.hypot(pointer.x - last.x, pointer.y - last.y) < 4) return
+        }
+        pts.push(pointer)
+
+        canvas.remove(lassoPreviewRef.current)
+        const preview = new fabric.Polyline([...pts], {
+          stroke: '#ff4444',
+          strokeWidth: 2,
+          fill: 'rgba(255, 68, 68, 0.08)',
+          strokeDashArray: [6, 3],
+          selectable: false,
+          evented: false,
+          objectCaching: false,
+          name: '_lassoPreview',
+        })
+        canvas.add(preview)
+        lassoPreviewRef.current = preview
+        canvas.renderAll()
+      })
+
+      canvas.on('mouse:up', () => {
+        if (lassoPreviewRef.current) {
+          canvas.remove(lassoPreviewRef.current)
+          lassoPreviewRef.current = null
+        }
+        const pts = lassoPointsRef.current
+        lassoPointsRef.current = []
+        setIsDrawing(false)
+
+        if (pts.length < 3) { canvas.renderAll(); return }
+
+        // Supprimer les objets flou dont le centre est dans le lasso
+        const toRemove = canvas.getObjects().filter(obj => {
+          if (obj.name !== 'lassoBlur' && obj.name !== 'blurMask') return false
+          const center = obj.getCenterPoint()
+          return pointInPolygon(center, pts)
+        })
+        toRemove.forEach(obj => canvas.remove(obj))
+        canvas.renderAll()
+        if (toRemove.length > 0) saveAnnotations()
       })
     }
 
@@ -520,7 +786,7 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
       canvas.off('object:modified', handleObjectModified)
       canvas.off('path:created', handlePathCreated)
     }
-  }, [canvas, activeTool, isDrawing, currentShape, startPoint, toolSettings, backgroundImage, cropRect, saveAnnotations])
+  }, [canvas, activeTool, isDrawing, currentShape, startPoint, toolSettings, backgroundImage, cropRect, saveAnnotations, applyLassoBlur])
 
   // Fonctions de zoom
   const handleZoomIn = useCallback(() => {
