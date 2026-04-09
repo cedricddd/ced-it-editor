@@ -541,6 +541,13 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
     // Outil lasso effacer flou
     if (activeTool === 'lasso-erase') {
       canvas.defaultCursor = 'crosshair'
+      // Empêcher la sélection/déplacement des objets existants pendant le lasso
+      canvas.getObjects().forEach(obj => {
+        if (obj.name !== 'backgroundImage') {
+          obj.selectable = false
+          obj.evented = false
+        }
+      })
 
       // Test point-dans-polygone (ray casting)
       const pointInPolygon = (point, polygon) => {
@@ -785,6 +792,15 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
       canvas.off('mouse:up')
       canvas.off('object:modified', handleObjectModified)
       canvas.off('path:created', handlePathCreated)
+      // Restaurer l'interactivité des objets si on quitte lasso-erase
+      if (activeTool === 'lasso-erase') {
+        canvas.getObjects().forEach(obj => {
+          if (obj.name !== 'backgroundImage' && obj.name !== '_lassoPreview') {
+            obj.selectable = true
+            obj.evented = true
+          }
+        })
+      }
     }
   }, [canvas, activeTool, isDrawing, currentShape, startPoint, toolSettings, backgroundImage, cropRect, saveAnnotations, applyLassoBlur])
 

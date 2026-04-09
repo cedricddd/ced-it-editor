@@ -13,18 +13,20 @@ function AdjustmentsPanel({ adjustments, setAdjustments, disabled }) {
   ]
 
   const shortcutList = [
-    { label: t.adjustments.shortcutLabels.select,    key: '1' },
-    { label: t.adjustments.shortcutLabels.text,      key: '2' },
-    { label: t.adjustments.shortcutLabels.rectangle, key: '3' },
-    { label: t.adjustments.shortcutLabels.circle,    key: '4' },
-    { label: t.adjustments.shortcutLabels.arrow,     key: '5' },
-    { label: t.adjustments.shortcutLabels.highlight, key: '6' },
-    { label: t.adjustments.shortcutLabels.draw,      key: '7' },
-    { label: t.adjustments.shortcutLabels.eraser,    key: '8' },
-    { label: t.adjustments.shortcutLabels.crop,      key: '9' },
-    { label: t.adjustments.shortcutLabels.export,    key: 'Ctrl+S' },
-    { label: t.adjustments.shortcutLabels.nextImage, key: '→' },
-    { label: t.adjustments.shortcutLabels.prevImage, key: '←' },
+    { label: t.adjustments.shortcutLabels.select,     key: '1' },
+    { label: t.adjustments.shortcutLabels.text,       key: '2' },
+    { label: t.adjustments.shortcutLabels.rectangle,  key: '3' },
+    { label: t.adjustments.shortcutLabels.circle,     key: '4' },
+    { label: t.adjustments.shortcutLabels.arrow,      key: '5' },
+    { label: t.adjustments.shortcutLabels.highlight,  key: '6' },
+    { label: t.adjustments.shortcutLabels.blur,       key: '7' },
+    { label: t.adjustments.shortcutLabels.draw,       key: '8' },
+    { label: t.adjustments.shortcutLabels.crop,       key: '9' },
+    { label: t.adjustments.shortcutLabels.lasso_blur, key: '0' },
+    { label: t.adjustments.shortcutLabels.lasso_erase, key: 'E' },
+    { label: t.adjustments.shortcutLabels.export,     key: 'Ctrl+S' },
+    { label: t.adjustments.shortcutLabels.nextImage,  key: '→' },
+    { label: t.adjustments.shortcutLabels.prevImage,  key: '←' },
   ]
 
   const handleChange = (key, value) => {
