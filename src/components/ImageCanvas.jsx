@@ -549,20 +549,6 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
         }
       })
 
-      // Test point-dans-polygone (ray casting)
-      const pointInPolygon = (point, polygon) => {
-        let inside = false
-        const n = polygon.length
-        for (let i = 0, j = n - 1; i < n; j = i++) {
-          const xi = polygon[i].x, yi = polygon[i].y
-          const xj = polygon[j].x, yj = polygon[j].y
-          const intersect = ((yi > point.y) !== (yj > point.y)) &&
-            (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi)
-          if (intersect) inside = !inside
-        }
-        return inside
-      }
-
       let lastPointTime = 0
 
       canvas.on('mouse:down', (opt) => {
@@ -626,15 +612,100 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
 
         if (pts.length < 3) { canvas.renderAll(); return }
 
-        // Supprimer les objets flou dont le centre est dans le lasso
-        const toRemove = canvas.getObjects().filter(obj => {
+        // Bounding box du lasso d'effacement
+        const eraseXs = pts.map(p => p.x)
+        const eraseYs = pts.map(p => p.y)
+        const eraseLeft  = Math.min(...eraseXs)
+        const eraseRight = Math.max(...eraseXs)
+        const eraseTop   = Math.min(...eraseYs)
+        const eraseBottom = Math.max(...eraseYs)
+
+        // Trouver les objets flou qui chevauchent la zone d'effacement
+        const candidates = canvas.getObjects().filter(obj => {
           if (obj.name !== 'lassoBlur' && obj.name !== 'blurMask') return false
-          const center = obj.getCenterPoint()
-          return pointInPolygon(center, pts)
+          const objRight  = obj.left + obj.width
+          const objBottom = obj.top  + obj.height
+          return !(objRight < eraseLeft || obj.left > eraseRight ||
+                   objBottom < eraseTop || obj.top  > eraseBottom)
         })
-        toRemove.forEach(obj => canvas.remove(obj))
-        canvas.renderAll()
-        if (toRemove.length > 0) saveAnnotations()
+
+        if (candidates.length === 0) { canvas.renderAll(); return }
+
+        let pending = candidates.length
+        const done = () => {
+          pending--
+          if (pending === 0) {
+            canvas.renderAll()
+            saveAnnotations()
+          }
+        }
+
+        candidates.forEach(obj => {
+          const objLeft  = obj.left
+          const objTop   = obj.top
+          const objW     = obj.width
+          const objH     = obj.height
+          const objName  = obj.name
+          const clipPts  = obj.clipPath?.points || null
+
+          const img = new Image()
+          img.onload = () => {
+            const off = document.createElement('canvas')
+            off.width  = objW
+            off.height = objH
+            const ctx = off.getContext('2d')
+
+            // Dessiner l'image avec son clip path original
+            ctx.save()
+            if (clipPts) {
+              ctx.beginPath()
+              ctx.moveTo(clipPts[0].x + objW / 2, clipPts[0].y + objH / 2)
+              for (let i = 1; i < clipPts.length; i++) {
+                ctx.lineTo(clipPts[i].x + objW / 2, clipPts[i].y + objH / 2)
+              }
+              ctx.closePath()
+              ctx.clip()
+            }
+            ctx.drawImage(img, 0, 0, objW, objH)
+            ctx.restore()
+
+            // Effacer la zone tracée (destination-out = transparent)
+            ctx.globalCompositeOperation = 'destination-out'
+            ctx.beginPath()
+            pts.forEach((p, i) => {
+              const lx = p.x - objLeft
+              const ly = p.y - objTop
+              if (i === 0) ctx.moveTo(lx, ly)
+              else ctx.lineTo(lx, ly)
+            })
+            ctx.closePath()
+            ctx.fill()
+            ctx.globalCompositeOperation = 'source-over'
+
+            // Vérifier s'il reste des pixels visibles
+            const data = ctx.getImageData(0, 0, objW, objH).data
+            const hasPixels = data.some((v, i) => i % 4 === 3 && v > 10)
+
+            canvas.remove(obj)
+
+            if (hasPixels) {
+              fabric.Image.fromURL(off.toDataURL(), (newImg) => {
+                newImg.set({
+                  left: objLeft,
+                  top: objTop,
+                  selectable: true,
+                  name: objName,
+                  objectCaching: true,
+                })
+                canvas.add(newImg)
+                done()
+              })
+            } else {
+              done()
+            }
+          }
+          img.src = obj.getSrc()
+        })
       })
     }
 
