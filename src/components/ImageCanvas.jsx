@@ -620,7 +620,25 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
         const eraseTop   = Math.min(...eraseYs)
         const eraseBottom = Math.max(...eraseYs)
 
-        // Trouver les objets flou qui chevauchent la zone d'effacement
+        // Point-in-polygon (ray casting) pour tester si un point est dans le lasso
+        const pointInPolygon = (point, polygon) => {
+          let inside = false
+          for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            const xi = polygon[i].x, yi = polygon[i].y
+            const xj = polygon[j].x, yj = polygon[j].y
+            const intersect = ((yi > point.y) !== (yj > point.y)) &&
+              (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi)
+            if (intersect) inside = !inside
+          }
+          return inside
+        }
+
+        // Vérifier si la bounding box d'un objet intersecte la bounding box du lasso
+        const bboxOverlaps = (br) =>
+          !(br.left + br.width < eraseLeft || br.left > eraseRight ||
+            br.top + br.height < eraseTop  || br.top  > eraseBottom)
+
+        // Objets image (lassoBlur, blurMask) : effacement pixel par pixel
         const candidates = canvas.getObjects().filter(obj => {
           if (obj.name !== 'lassoBlur' && obj.name !== 'blurMask') return false
           const objRight  = obj.left + obj.width
@@ -629,7 +647,29 @@ function ImageCanvas({ image, activeTool, adjustments, toolSettings, onCanvasRea
                    objBottom < eraseTop || obj.top  > eraseBottom)
         })
 
-        if (candidates.length === 0) { canvas.renderAll(); return }
+        // Autres annotations (rectangle, cercle, flèche, texte, dessin…) : suppression directe
+        const EXCLUDED = new Set(['backgroundImage', 'cropRect', '_lassoPreview', 'lassoBlur', 'blurMask'])
+        const simpleAnnotations = canvas.getObjects().filter(obj => {
+          if (EXCLUDED.has(obj.name)) return false
+          const br = obj.getBoundingRect()
+          if (!bboxOverlaps(br)) return false
+          // Supprimer si le centre de l'objet est dans le lasso
+          const cx = br.left + br.width / 2
+          const cy = br.top  + br.height / 2
+          return pointInPolygon({ x: cx, y: cy }, pts)
+        })
+
+        // Supprimer les annotations simples immédiatement
+        if (simpleAnnotations.length > 0) {
+          simpleAnnotations.forEach(obj => canvas.remove(obj))
+          canvas.discardActiveObject()
+        }
+
+        if (candidates.length === 0) {
+          if (simpleAnnotations.length > 0) { canvas.renderAll(); saveAnnotations() }
+          else { canvas.renderAll() }
+          return
+        }
 
         let pending = candidates.length
         const done = () => {

@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ced-IT Image Editor — Guide d'utilisation</title>
+  <link rel="icon" href="/favicon.svg" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    :root {
+      --navy:    #0a1628;
+      --navy2:   #0d2040;
+      --navy3:   #112255;
+      --cyan:    #00d4ff;
+      --cyan2:   #00b8e0;
+      --violet:  #8b5cf6;
+      --violet2: #7c3aed;
+      --text:    #e2e8f0;
+      --muted:   #94a3b8;
+      --border:  rgba(0,212,255,0.15);
+      --card:    rgba(13,32,64,0.8);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background: var(--navy);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ═══ SCROLLBAR ═══ */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--navy); }
+    ::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.25); border-radius: 3px; }
+
+    /* ═══ BACKGROUND ═══ */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(139,92,246,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(0,212,255,0.08) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ═══ TOP BAR ═══ */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+      background: var(--navy2);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .back-btn:hover {
+      border-color: rgba(0,212,255,0.4);
+      color: var(--cyan);
+      background: rgba(0,212,255,0.06);
+    }
+    .back-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    .lang-toggle {
+      display: flex;
+      background: var(--navy2);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .lang-btn {
+      cursor: pointer;
+      padding: 7px 20px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      transition: all 0.25s ease;
+    }
+    .lang-btn.active {
+      background: var(--violet);
+      color: #fff;
+    }
+
+    /* ═══ HEADER ═══ */
+    .header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .app-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(139,92,246,0.12);
+      border: 1px solid rgba(139,92,246,0.3);
+      border-radius: 50px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--violet);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .app-badge svg { width: 14px; height: 14px; }
+
+    .header h1 {
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 0%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header .tagline {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 28px;
+      line-height: 1.6;
+    }
+
+    .header-meta {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .meta-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .meta-pill .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+    }
+
+    /* ═══ SECTION COMMON ═══ */
+    .section { margin-bottom: 64px; }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .section-h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .section-sub {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    /* ═══ STEPS ═══ */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .step-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .step-card:hover { transform: translateY(-3px); border-color: rgba(139,92,246,0.4); }
+    .step-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--violet), var(--cyan));
+    }
+
+    .step-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--violet);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .step-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: rgba(139,92,246,0.15);
+      border: 1px solid rgba(139,92,246,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 22px;
+    }
+    .step-card h3 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .step-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .step-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+    .step-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.2);
+      color: var(--cyan);
+    }
+
+    /* ═══ INTERFACE DIAGRAM ═══ */
+    .interface-diagram {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .interface-header {
+      background: rgba(0,0,0,0.3);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .win-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .win-url { flex: 1; text-align: center; font-size: 12px; color: var(--muted); font-family: monospace; }
+    .interface-body {
+      display: grid;
+      grid-template-columns: 56px 1fr 200px;
+      min-height: 200px;
+    }
+    .if-left {
+      background: rgba(0,0,0,0.25);
+      border-right: 1px solid var(--border);
+      padding: 16px 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .if-tool-dot {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.25);
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .if-center { padding: 20px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
+    .canvas-area {
+      width: 100%; height: 140px;
+      border: 2px dashed rgba(139,92,246,0.3); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 13px;
+      background: rgba(139,92,246,0.03); position: relative;
+    }
+    .canvas-label { font-size: 11px; color: var(--muted); text-align: center; }
+    .if-right {
+      background: rgba(0,0,0,0.2);
+      border-left: 1px solid var(--border); padding: 16px;
+    }
+    .if-right-title {
+      font-size: 11px; font-weight: 700; color: var(--cyan);
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px;
+    }
+    .slider-row { margin-bottom: 10px; }
+    .slider-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .slider-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .slider-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--violet), var(--cyan)); }
+    .zone-labels { display: grid; grid-template-columns: 56px 1fr 200px; border-top: 1px solid var(--border); }
+    .zone-label {
+      padding: 8px; font-size: 10px; font-weight: 600;
+      text-align: center; color: var(--cyan); letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    /* ═══ TOOLS GRID ═══ */
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .tool-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 16px;
+      display: flex; align-items: center; gap: 12px;
+      transition: all 0.2s;
+    }
+    .tool-card:hover { background: rgba(13,32,64,1); border-color: rgba(0,212,255,0.3); }
+    .tool-icon-wrap {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2);
+      display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+    }
+    .tool-info { flex: 1; min-width: 0; }
+    .tool-key {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.25);
+      color: var(--cyan); border-radius: 5px; padding: 1px 6px; margin-bottom: 4px;
+      font-family: 'Courier New', monospace;
+    }
+    .tool-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ═══ RGPD DETAIL ═══ */
+    .rgpd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .rgpd-card {
+      background: var(--card);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 14px; padding: 22px 20px;
+    }
+    .rgpd-card-title {
+      font-size: 15px; font-weight: 700; color: #fff;
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .rgpd-card p { font-size: 13px; color: var(--muted); line-height: 1.65; margin-bottom: 10px; }
+    .rgpd-card p:last-child { margin-bottom: 0; }
+    .rgpd-params { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .rgpd-params-title { font-size: 11px; font-weight: 700; color: var(--cyan); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+    .param-row { display: flex; gap: 8px; margin-bottom: 6px; }
+    .param-badge {
+      font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px;
+      background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.25);
+      color: #a78bfa; flex-shrink: 0;
+    }
+    .param-desc { font-size: 12px; color: var(--muted); }
+
+    /* ═══ EXPORT CARDS ═══ */
+    .export-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+    .export-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 16px;
+      text-align: center;
+    }
+    .export-card .eq-label { font-size: 22px; font-weight: 900; color: var(--cyan); margin-bottom: 6px; }
+    .export-card .eq-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .export-card .eq-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+    /* ═══ SHORTCUTS ═══ */
+    .shortcuts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+    .shortcut-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px;
+    }
+    .kbd { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; }
+    .key {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-bottom: 3px solid rgba(0,0,0,0.5);
+      border-radius: 6px; padding: 3px 8px;
+      font-size: 11px; font-weight: 700; font-family: 'Courier New', monospace;
+      color: #fff; min-width: 28px; text-align: center;
+    }
+    .key.cyan { border-color: rgba(0,212,255,0.4); background: rgba(0,212,255,0.1); color: var(--cyan); }
+    .shortcut-desc { font-size: 13px; color: var(--muted); }
+
+    /* ═══ TIPS ═══ */
+    .tips-grid { display: flex; flex-direction: column; gap: 12px; }
+    .tip-row {
+      display: flex; gap: 14px; align-items: flex-start;
+      background: var(--card); border: 1px solid var(--border);
+      border-left: 3px solid var(--cyan);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .tip-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .tip-text { font-size: 13px; color: var(--muted); line-height: 1.65; }
+    .tip-text strong { color: var(--text); }
+
+    /* ═══ BOTTOM GRID (privacy + pricing) ═══ */
+    .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 48px; }
+    .info-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+    }
+    .info-card.privacy { border-color: rgba(0,212,255,0.2); }
+    .info-card.pricing { border-color: rgba(139,92,246,0.25); background: rgba(139,92,246,0.05); }
+    .info-icon { font-size: 32px; margin-bottom: 12px; }
+    .info-card h3 { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .info-card p { font-size: 13px; color: var(--muted); line-height: 1.65; }
+    .price-line { display: flex; align-items: baseline; gap: 6px; margin: 16px 0 4px; }
+    .price-amount { font-size: 32px; font-weight: 900; color: var(--violet); }
+    .price-period { font-size: 13px; color: var(--muted); }
+    .price-yearly { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--violet); color: #fff;
+      font-size: 14px; font-weight: 700;
+      padding: 10px 22px; border-radius: 50px;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cta-btn:hover { background: var(--violet2); transform: translateY(-1px); }
+
+    /* ═══ WARNING BLOCK ═══ */
+    .warn-block {
+      display: flex; align-items: flex-start; gap: 14px;
+      background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;
+    }
+    .warn-block .warn-icon { font-size: 22px; flex-shrink: 0; }
+    .warn-title { font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 4px; }
+    .warn-body { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ═══ FOOTER ═══ */
+    .footer {
+      text-align: center; font-size: 12px;
+      color: rgba(148,163,184,0.5);
+      padding-top: 32px; border-top: 1px solid var(--border);
+    }
+    .footer span { color: var(--cyan); opacity: 0.7; }
+
+    /* ═══ LANG VISIBILITY ═══ */
+    [data-lang] { display: none; }
+    body.fr [data-lang="fr"] { display: block; }
+    body.fr [data-lang-i="fr"] { display: inline; }
+    body.en [data-lang="en"] { display: block; }
+    body.en [data-lang-i="en"] { display: inline; }
+
+    /* inline elements that use data-lang need special handling */
+    .step-tag[data-lang], .tool-name[data-lang], .shortcut-desc[data-lang],
+    .step-num[data-lang], .step-card h3[data-lang], .step-card p[data-lang],
+    .info-card h3[data-lang], .info-card p[data-lang],
+    .section-h2[data-lang], .section-sub[data-lang],
+    .header .tagline[data-lang], .if-right-title[data-lang],
+    .canvas-label[data-lang], .price-period[data-lang], .price-yearly[data-lang],
+    .rgpd-card p[data-lang], .rgpd-card-title[data-lang],
+    .rgpd-params-title[data-lang], .param-desc[data-lang],
+    .export-card .eq-title[data-lang], .export-card .eq-desc[data-lang],
+    .tip-text[data-lang], .warn-title[data-lang], .warn-body[data-lang] { display: none; }
+
+    body.fr .step-tag[data-lang="fr"], body.fr .tool-name[data-lang="fr"],
+    body.fr .shortcut-desc[data-lang="fr"], body.fr .step-num[data-lang="fr"],
+    body.fr .step-card h3[data-lang="fr"], body.fr .step-card p[data-lang="fr"],
+    body.fr .info-card h3[data-lang="fr"], body.fr .info-card p[data-lang="fr"],
+    body.fr .section-h2[data-lang="fr"], body.fr .section-sub[data-lang="fr"],
+    body.fr .header .tagline[data-lang="fr"], body.fr .if-right-title[data-lang="fr"],
+    body.fr .canvas-label[data-lang="fr"], body.fr .price-period[data-lang="fr"],
+    body.fr .price-yearly[data-lang="fr"], body.fr .rgpd-card p[data-lang="fr"],
+    body.fr .rgpd-card-title[data-lang="fr"], body.fr .rgpd-params-title[data-lang="fr"],
+    body.fr .param-desc[data-lang="fr"], body.fr .export-card .eq-title[data-lang="fr"],
+    body.fr .export-card .eq-desc[data-lang="fr"], body.fr .tip-text[data-lang="fr"],
+    body.fr .warn-title[data-lang="fr"], body.fr .warn-body[data-lang="fr"] { display: block; }
+
+    body.en .step-tag[data-lang="en"], body.en .tool-name[data-lang="en"],
+    body.en .shortcut-desc[data-lang="en"], body.en .step-num[data-lang="en"],
+    body.en .step-card h3[data-lang="en"], body.en .step-card p[data-lang="en"],
+    body.en .info-card h3[data-lang="en"], body.en .info-card p[data-lang="en"],
+    body.en .section-h2[data-lang="en"], body.en .section-sub[data-lang="en"],
+    body.en .header .tagline[data-lang="en"], body.en .if-right-title[data-lang="en"],
+    body.en .canvas-label[data-lang="en"], body.en .price-period[data-lang="en"],
+    body.en .price-yearly[data-lang="en"], body.en .rgpd-card p[data-lang="en"],
+    body.en .rgpd-card-title[data-lang="en"], body.en .rgpd-params-title[data-lang="en"],
+    body.en .param-desc[data-lang="en"], body.en .export-card .eq-title[data-lang="en"],
+    body.en .export-card .eq-desc[data-lang="en"], body.en .tip-text[data-lang="en"],
+    body.en .warn-title[data-lang="en"], body.en .warn-body[data-lang="en"] { display: block; }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 640px) {
+      .bottom-grid { grid-template-columns: 1fr; }
+      .export-grid { grid-template-columns: 1fr; }
+      .rgpd-grid { grid-template-columns: 1fr; }
+      .interface-body { grid-template-columns: 48px 1fr; }
+      .if-right { display: none; }
+      .zone-labels { grid-template-columns: 48px 1fr; }
+      .zone-label.settings { display: none; }
+    }
+  </style>
+</head>
+<body class="fr">
+<div class="page">
+
+  <!-- ═══ TOP BAR ═══ -->
+  <div class="top-bar">
+    <a href="/" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+      <span data-lang="fr">Retour à l'éditeur</span>
+      <span data-lang="en">Back to editor</span>
+    </a>
+    <div class="lang-toggle">
+      <button class="lang-btn active" onclick="setLang('fr')">🇫🇷 Français</button>
+      <button class="lang-btn" onclick="setLang('en')">🇬🇧 English</button>
+    </div>
+  </div>
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="header">
+    <div class="app-badge">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="14" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M4 8l3 3 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Ced-IT Image Editor
+    </div>
+    <h1>Ced-IT Image Editor</h1>
+    <p class="tagline" data-lang="fr">Annotez, dessinez et exportez vos images directement dans votre navigateur — aucune installation requise.</p>
+    <p class="tagline" data-lang="en">Annotate, draw and export your images directly in your browser — no installation required.</p>
+    <div class="header-meta">
+      <div class="meta-pill"><span class="dot"></span> React + Fabric.js</div>
+      <div class="meta-pill"><span class="dot" style="background:#8b5cf6"></span> 11 outils / tools</div>
+      <div class="meta-pill"><span class="dot" style="background:#10b981"></span> 100% local</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 1 — DÉMARRAGE
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span data-lang="fr">Démarrer en 3 étapes</span>
+      <span data-lang="en">Get started in 3 steps</span>
+    </div>
+    <div class="section-h2" data-lang="fr">Comment utiliser l'éditeur</div>
+    <div class="section-h2" data-lang="en">How to use the editor</div>
+    <div class="section-sub" data-lang="fr">Importez une image, annotez-la avec les outils, puis exportez en haute résolution.</div>
+    <div class="section-sub" data-lang="en">Import an image, annotate it with the tools, then export in high resolution.</div>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num" data-lang="fr">Étape 01</div>
+        <div class="step-num" data-lang="en">Step 01</div>
+        <div class="step-icon">📂</div>
+        <h3 data-lang="fr">Importer une image</h3>
+        <h3 data-lang="en">Import an image</h3>
+        <p data-lang="fr">Chargez une ou plusieurs images depuis votre ordinateur, capturez via webcam, collez une capture d'écran ou glissez-déposez des fichiers. Le multi-import permet de gérer un lot complet en une session.</p>
+        <p data-lang="en">Load one or more images from your computer, capture via webcam, paste a screenshot or drag & drop files. Multi-import lets you handle an entire batch in one session.</p>
+        <div class="step-tags">
+          <span class="step-tag" data-lang="fr">Fichier local</span>
+          <span class="step-tag" data-lang="en">Local file</span>
+          <span class="step-tag" data-lang="fr">Webcam</span>
+          <span class="step-tag" data-lang="en">Webcam</span>
+          <span class="step-tag" data-lang="fr">Capture d'écran</span>
+          <span class="step-tag" data-lang="en">Screenshot</span>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num" data-lang="fr">Étape 02</div>
+        <div class="step-num" data-lang="en">Step 02</div>
+        <div class="step-icon">✏️</div>
+        <h3 data-lang="fr">Annoter et éditer</h3>
+        <h3 data-lang="en">Annotate &amp; edit</h3>
+        <p data-lang="fr">Utilisez les 11 outils de la barre latérale gauche. Ajustez la luminosité, le contraste, la saturation et la netteté depuis le panneau droit. Utilisez les outils Lasso pour la conformité RGPD.</p>
+        <p data-lang="en">Use the 11 tools in the left sidebar. Adjust brightness, contrast, saturation and sharpness from the right panel. Use Lasso tools for GDPR compliance.</p>
+        <div class="step-tags">
+          <span class="step-tag" data-lang="fr">11 outils</span>
+          <span class="step-tag" data-lang="en">11 tools</span>
+          <span class="step-tag" data-lang="fr">RGPD</span>
+          <span class="step-tag" data-lang="en">GDPR</span>
+          <span class="step-tag" data-lang="fr">Réglages</span>
+          <span class="step-tag" data-lang="en">Adjustments</span>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num" data-lang="fr">Étape 03</div>
+        <div class="step-num" data-lang="en">Step 03</div>
+        <div class="step-icon">💾</div>
+        <h3 data-lang="fr">Exporter en haute résolution</h3>
+        <h3 data-lang="en">Export in high resolution</h3>
+        <p data-lang="fr">Enregistrez en PNG via Ctrl+S. Choisissez la qualité (HQ/MQ/BQ) et exportez l'image actuelle ou tout le lot en une seule session. Copiez aussi directement dans le presse-papier.</p>
+        <p data-lang="en">Save as PNG via Ctrl+S. Choose quality (HQ/MQ/BQ) and export the current image or the whole batch in one session. Or copy directly to the clipboard.</p>
+        <div class="step-tags">
+          <span class="step-tag">Ctrl+S</span>
+          <span class="step-tag" data-lang="fr">Presse-papier</span>
+          <span class="step-tag" data-lang="en">Clipboard</span>
+          <span class="step-tag">HQ / MQ / BQ</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 2 — INTERFACE
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span data-lang="fr">Interface</span>
+      <span data-lang="en">Interface</span>
+    </div>
+    <div class="section-h2" data-lang="fr">Vue d'ensemble de l'éditeur</div>
+    <div class="section-h2" data-lang="en">Editor overview</div>
+    <div class="section-sub" data-lang="fr">L'interface est divisée en trois zones : barre d'outils à gauche, zone de travail canvas au centre, panneau de réglages à droite.</div>
+    <div class="section-sub" data-lang="en">The interface is divided into three zones: tool bar on the left, canvas workspace in the center, adjustments panel on the right.</div>
+
+    <div class="interface-diagram">
+      <div class="interface-header">
+        <div class="win-dot" style="background:#ff5f57"></div>
+        <div class="win-dot" style="background:#febc2e"></div>
+        <div class="win-dot" style="background:#28c840"></div>
+        <div class="win-url">ap-annotator.ced-it.be</div>
+      </div>
+      <div class="interface-body">
+        <div class="if-left">
+          <div class="if-tool-dot">↖️</div>
+          <div class="if-tool-dot" style="font-size:12px;font-weight:700;color:#8b5cf6">T</div>
+          <div class="if-tool-dot">↗️</div>
+          <div class="if-tool-dot">▭</div>
+          <div class="if-tool-dot">◎</div>
+          <div class="if-tool-dot">🌀</div>
+        </div>
+        <div class="if-center">
+          <div class="canvas-area">
+            <span class="canvas-label" data-lang="fr">Zone de travail Canvas<br><small style="font-size:10px;opacity:0.6">Glissez-déposez votre image ici</small></span>
+            <span class="canvas-label" data-lang="en">Canvas Workspace<br><small style="font-size:10px;opacity:0.6">Drag &amp; drop your image here</small></span>
+          </div>
+        </div>
+        <div class="if-right">
+          <div class="if-right-title" data-lang="fr">Réglages</div>
+          <div class="if-right-title" data-lang="en">Adjustments</div>
+          <div class="slider-row">
+            <div class="slider-label">
+              <span data-lang="fr">Luminosité</span><span data-lang="en">Brightness</span>
+              <span>60%</span>
+            </div>
+            <div class="slider-bar"><div class="slider-fill" style="width:60%"></div></div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-label">
+              <span data-lang="fr">Contraste</span><span data-lang="en">Contrast</span>
+              <span>45%</span>
+            </div>
+            <div class="slider-bar"><div class="slider-fill" style="width:45%"></div></div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-label">
+              <span data-lang="fr">Saturation</span><span data-lang="en">Saturation</span>
+              <span>75%</span>
+            </div>
+            <div class="slider-bar"><div class="slider-fill" style="width:75%"></div></div>
+          </div>
+          <div class="slider-row">
+            <div class="slider-label">
+              <span data-lang="fr">Netteté</span><span data-lang="en">Sharpness</span>
+              <span>55%</span>
+            </div>
+            <div class="slider-bar"><div class="slider-fill" style="width:55%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="zone-labels">
+        <div class="zone-label" data-lang="fr">Outils</div>
+        <div class="zone-label" data-lang="en">Tools</div>
+        <div class="zone-label" data-lang="fr">Canvas</div>
+        <div class="zone-label" data-lang="en">Canvas</div>
+        <div class="zone-label settings" data-lang="fr" style="display:block">Réglages</div>
+        <div class="zone-label settings" data-lang="en" style="display:none">Settings</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 3 — OUTILS
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span data-lang="fr">11 outils d'annotation</span>
+      <span data-lang="en">11 annotation tools</span>
+    </div>
+    <div class="section-h2" data-lang="fr">Tous les outils disponibles</div>
+    <div class="section-h2" data-lang="en">All available tools</div>
+    <div class="section-sub" data-lang="fr">Chaque outil est accessible via son raccourci clavier. Sélectionnez un objet et appuyez sur Suppr pour l'effacer.</div>
+    <div class="section-sub" data-lang="en">Each tool is accessible via its keyboard shortcut. Select an object and press Del to remove it.</div>
+
+    <div class="warn-block">
+      <span class="warn-icon">⚠️</span>
+      <div>
+        <div class="warn-title" data-lang="fr">Recadrer en premier</div>
+        <div class="warn-title" data-lang="en">Crop first</div>
+        <div class="warn-body" data-lang="fr">Utilisez toujours l'outil <strong style="color:#e2e8f0">Recadrage (9)</strong> <em>avant</em> d'annoter. Recadrer après annotation ne déplace pas les calques existants.</div>
+        <div class="warn-body" data-lang="en">Always use the <strong style="color:#e2e8f0">Crop tool (9)</strong> <em>before</em> annotating. Cropping after annotation does not move existing layers.</div>
+      </div>
+    </div>
+
+    <div class="tools-grid">
+      <div class="tool-card">
+        <div class="tool-icon-wrap">↖️</div>
+        <div class="tool-info">
+          <span class="tool-key">1</span>
+          <div class="tool-name" data-lang="fr">Sélection</div>
+          <div class="tool-name" data-lang="en">Selection</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon-wrap" style="font-size:15px;font-weight:700;color:#8b5cf6">T</div>
+        <div class="tool-info">
+          <span class="tool-key">2</span>
+          <div class="tool-name" data-lang="fr">Texte</div>
+          <div class="tool-name" data-lang="en">Text</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon-wrap">▭</div>
+        <div class="tool-info">
+          <span class="tool-key">3</span>
+          <div class="tool-name" data-lang="fr">Rectangle</div>
+          <div class="tool-name" data-lang="en">Rectangle</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon-wrap">◎</div>
+        <div class="tool-info">
+          <span class="tool-key">4</span>
+          <div class="tool-name" data-lang="fr">Cercle</div>
+          <div class="tool-name" data-lang="en">Circle</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon-wrap">↗️</div>
+        <div class="tool-info">
+          <span class="tool-key">5</span>
+          <div class="tool-name" data-lang="fr">Flèche</div>
+          <div class="tool-name" data-lang="en">Arrow</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon-wrap">🖍️</div>
+        <div class="tool-info">
+          <span class="tool-key">6</span>
+          <div class="tool-name" data-lang="fr">Surlignage</div>
+          <div class="tool-name" data-lang="en">Highlight</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon-wrap">🫥</div>
+        <div class="tool-info">
+          <span class="tool-key">7</span>
+          <div class="tool-name" data-lang="fr">Masquage</div>
+          <div class="tool-name" data-lang="en">Mask blur</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon-wrap">✏️</div>
+        <div class="tool-info">
+          <span class="tool-key">8</span>
+          <div class="tool-name" data-lang="fr">Dessin libre</div>
+          <div class="tool-name" data-lang="en">Free draw</div>
+        </div>
+      </div>
+      <div class="tool-card" style="border-color:rgba(251,191,36,0.25);background:rgba(251,191,36,0.04);">
+        <div class="tool-icon-wrap" style="background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.25);">✂️</div>
+        <div class="tool-info">
+          <span class="tool-key" style="color:#fbbf24;border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);">9</span>
+          <div class="tool-name" data-lang="fr">Recadrage ⚠️</div>
+          <div class="tool-name" data-lang="en">Crop ⚠️</div>
+        </div>
+      </div>
+      <div class="tool-card" style="border-color:rgba(0,212,255,0.25);">
+        <div class="tool-icon-wrap" style="background:rgba(0,212,255,0.08);border-color:rgba(0,212,255,0.2);">🌀</div>
+        <div class="tool-info">
+          <span class="tool-key">0</span>
+          <div class="tool-name" data-lang="fr">Lasso Flou</div>
+          <div class="tool-name" data-lang="en">Blur Lasso</div>
+        </div>
+      </div>
+      <div class="tool-card" style="border-color:rgba(0,212,255,0.25);">
+        <div class="tool-icon-wrap" style="background:rgba(0,212,255,0.08);border-color:rgba(0,212,255,0.2);">🧹</div>
+        <div class="tool-info">
+          <span class="tool-key">E</span>
+          <div class="tool-name" data-lang="fr">Lasso Effacer</div>
+          <div class="tool-name" data-lang="en">Erase Lasso</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 4 — OUTILS RGPD
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span data-lang="fr">Conformité RGPD</span>
+      <span data-lang="en">GDPR compliance</span>
+    </div>
+    <div class="section-h2" data-lang="fr">Anonymiser des zones sensibles</div>
+    <div class="section-h2" data-lang="en">Anonymise sensitive areas</div>
+    <div class="section-sub" data-lang="fr">Les outils Lasso permettent de tracer librement un contour autour de visages, plaques ou données personnelles pour les masquer ou les effacer.</div>
+    <div class="section-sub" data-lang="en">Lasso tools let you freely trace a contour around faces, plates or personal data to blur or erase them.</div>
+
+    <div class="rgpd-grid">
+      <div class="rgpd-card">
+        <div class="rgpd-card-title" data-lang="fr">🌀 Lasso Flou <span style="font-size:12px;color:#94a3b8;font-weight:400">(touche 0)</span></div>
+        <div class="rgpd-card-title" data-lang="en">🌀 Blur Lasso <span style="font-size:12px;color:#94a3b8;font-weight:400">(key 0)</span></div>
+        <p data-lang="fr">Tracez un lasso autour de la zone à flouter. Au relâchement, l'éditeur applique le traitement sélectionné sur la zone délimitée.</p>
+        <p data-lang="en">Draw a lasso around the area to blur. On release, the editor applies the selected treatment to the delimited area.</p>
+        <div class="rgpd-params">
+          <div class="rgpd-params-title" data-lang="fr">Paramètres outil</div>
+          <div class="rgpd-params-title" data-lang="en">Tool parameters</div>
+          <div class="param-row">
+            <span class="param-badge" data-lang="fr">Mode</span>
+            <span class="param-badge" data-lang="en">Mode</span>
+            <span class="param-desc" data-lang="fr">Flou gaussien ou Pixellisation</span>
+            <span class="param-desc" data-lang="en">Gaussian blur or Pixelate</span>
+          </div>
+          <div class="param-row">
+            <span class="param-badge" data-lang="fr">Intensité</span>
+            <span class="param-badge" data-lang="en">Intensity</span>
+            <span class="param-desc" data-lang="fr">1 (léger) → 20 (très fort)</span>
+            <span class="param-desc" data-lang="en">1 (light) → 20 (very strong)</span>
+          </div>
+        </div>
+      </div>
+      <div class="rgpd-card">
+        <div class="rgpd-card-title" data-lang="fr">🧹 Lasso Effacer <span style="font-size:12px;color:#94a3b8;font-weight:400">(touche E)</span></div>
+        <div class="rgpd-card-title" data-lang="en">🧹 Erase Lasso <span style="font-size:12px;color:#94a3b8;font-weight:400">(key E)</span></div>
+        <p data-lang="fr">Tracez un lasso pour <strong>effacer pixel à pixel</strong> la zone délimitée — transparence complète, irréversible dans la session en cours.</p>
+        <p data-lang="en">Draw a lasso to <strong>erase pixel by pixel</strong> the delimited area — complete transparency, irreversible within the current session.</p>
+        <p data-lang="fr" style="color:rgba(251,191,36,0.8);font-size:12px;">⚠️ À utiliser avec précaution — les pixels effacés ne peuvent pas être récupérés.</p>
+        <p data-lang="en" style="color:rgba(251,191,36,0.8);font-size:12px;">⚠️ Use with care — erased pixels cannot be recovered.</p>
+      </div>
+    </div>
+    <div class="tip-row">
+      <span class="tip-icon">💡</span>
+      <span class="tip-text" data-lang="fr">Pendant le tracé du lasso, les objets existants sont temporairement verrouillés pour éviter les déplacements accidentels. Ils sont restaurés automatiquement dès la fin du tracé.</span>
+      <span class="tip-text" data-lang="en">While drawing the lasso, existing objects are temporarily locked to prevent accidental moves. They are automatically restored when the lasso is released.</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 5 — RACCOURCIS
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span data-lang="fr">Raccourcis clavier</span>
+      <span data-lang="en">Keyboard shortcuts</span>
+    </div>
+    <div class="section-h2" data-lang="fr">Travaillez plus vite</div>
+    <div class="section-h2" data-lang="en">Work faster</div>
+    <div class="section-sub" data-lang="fr">Tous les outils et actions principales sont accessibles au clavier pour un workflow optimal.</div>
+    <div class="section-sub" data-lang="en">All tools and main actions are keyboard-accessible for an optimal workflow.</div>
+
+    <div class="shortcuts-grid">
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">1</span></div>
+        <span class="shortcut-desc" data-lang="fr">Sélection</span>
+        <span class="shortcut-desc" data-lang="en">Selection</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">2</span></div>
+        <span class="shortcut-desc" data-lang="fr">Texte</span>
+        <span class="shortcut-desc" data-lang="en">Text</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">3</span></div>
+        <span class="shortcut-desc" data-lang="fr">Rectangle</span>
+        <span class="shortcut-desc" data-lang="en">Rectangle</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">4</span></div>
+        <span class="shortcut-desc" data-lang="fr">Cercle</span>
+        <span class="shortcut-desc" data-lang="en">Circle</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">5</span></div>
+        <span class="shortcut-desc" data-lang="fr">Flèche</span>
+        <span class="shortcut-desc" data-lang="en">Arrow</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">6</span></div>
+        <span class="shortcut-desc" data-lang="fr">Surlignage</span>
+        <span class="shortcut-desc" data-lang="en">Highlight</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">7</span></div>
+        <span class="shortcut-desc" data-lang="fr">Masquage</span>
+        <span class="shortcut-desc" data-lang="en">Mask blur</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">8</span></div>
+        <span class="shortcut-desc" data-lang="fr">Dessin libre</span>
+        <span class="shortcut-desc" data-lang="en">Free draw</span>
+      </div>
+      <div class="shortcut-row" style="border-color:rgba(251,191,36,0.2);">
+        <div class="kbd"><span class="key" style="border-color:rgba(251,191,36,0.35);color:#fbbf24;">9</span></div>
+        <span class="shortcut-desc" data-lang="fr">Recadrage <strong style="color:#fbbf24;">— à faire en premier</strong></span>
+        <span class="shortcut-desc" data-lang="en">Crop <strong style="color:#fbbf24;">— do this first</strong></span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">0</span></div>
+        <span class="shortcut-desc" data-lang="fr">Lasso Flou</span>
+        <span class="shortcut-desc" data-lang="en">Blur Lasso</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">E</span></div>
+        <span class="shortcut-desc" data-lang="fr">Lasso Effacer</span>
+        <span class="shortcut-desc" data-lang="en">Erase Lasso</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key cyan">Ctrl</span><span style="color:var(--muted);font-size:11px;margin:0 2px">+</span><span class="key">S</span></div>
+        <span class="shortcut-desc" data-lang="fr">Exporter l'image</span>
+        <span class="shortcut-desc" data-lang="en">Export image</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">→</span></div>
+        <span class="shortcut-desc" data-lang="fr">Image suivante du lot</span>
+        <span class="shortcut-desc" data-lang="en">Next image in batch</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">←</span></div>
+        <span class="shortcut-desc" data-lang="fr">Image précédente du lot</span>
+        <span class="shortcut-desc" data-lang="en">Previous image in batch</span>
+      </div>
+      <div class="shortcut-row">
+        <div class="kbd"><span class="key">Suppr</span></div>
+        <span class="shortcut-desc" data-lang="fr">Supprimer l'objet sélectionné</span>
+        <span class="shortcut-desc" data-lang="en">Delete selected object</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 6 — EXPORT
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span data-lang="fr">Export</span>
+      <span data-lang="en">Export</span>
+    </div>
+    <div class="section-h2" data-lang="fr">Qualités d'export disponibles</div>
+    <div class="section-h2" data-lang="en">Available export qualities</div>
+    <div class="section-sub" data-lang="fr">Ouvrez le dialogue via Ctrl+S ou le bouton Export. Choisissez d'exporter l'image actuelle ou toutes les images du lot.</div>
+    <div class="section-sub" data-lang="en">Open the dialog via Ctrl+S or the Export button. Choose to export the current image or all images in the batch.</div>
+
+    <div class="export-grid">
+      <div class="export-card">
+        <div class="eq-label">HQ</div>
+        <div class="eq-title" data-lang="fr">Haute qualité</div>
+        <div class="eq-title" data-lang="en">High quality</div>
+        <div class="eq-desc" data-lang="fr">PNG 2× — meilleur rendu, fichier plus lourd. Idéal pour l'impression ou l'archivage.</div>
+        <div class="eq-desc" data-lang="en">PNG 2× — best quality, larger file. Ideal for printing or archiving.</div>
+      </div>
+      <div class="export-card">
+        <div class="eq-label" style="color:#a78bfa">MQ</div>
+        <div class="eq-title" data-lang="fr">Qualité moyenne</div>
+        <div class="eq-title" data-lang="en">Medium quality</div>
+        <div class="eq-desc" data-lang="fr">PNG 1× — équilibre taille / qualité. Parfait pour le web et les emails.</div>
+        <div class="eq-desc" data-lang="en">PNG 1× — balanced size / quality. Perfect for web and emails.</div>
+      </div>
+      <div class="export-card">
+        <div class="eq-label" style="color:#6b7f96">BQ</div>
+        <div class="eq-title" data-lang="fr">Basse qualité</div>
+        <div class="eq-title" data-lang="en">Low quality</div>
+        <div class="eq-desc" data-lang="fr">PNG 0.5× — taille réduite. Pour les aperçus ou les envois à faible bande passante.</div>
+        <div class="eq-desc" data-lang="en">PNG 0.5× — reduced size. For previews or low-bandwidth sharing.</div>
+      </div>
+    </div>
+
+    <div class="tip-row">
+      <span class="tip-icon">📋</span>
+      <span class="tip-text" data-lang="fr"><strong>Copier dans le presse-papier</strong> — le bouton copie (icône dans le header) exporte l'image directement en mémoire pour la coller dans n'importe quelle application sans créer de fichier.</span>
+      <span class="tip-text" data-lang="en"><strong>Copy to clipboard</strong> — the copy button (icon in the header) exports the image directly to memory so you can paste it in any app without saving a file.</span>
+    </div>
+    <div class="tip-row" style="margin-top:10px;">
+      <span class="tip-icon">⚡</span>
+      <span class="tip-text" data-lang="fr"><strong>Exporter &amp; Suivant</strong> — dans le dialogue d'export, ce bouton exporte l'image actuelle puis passe automatiquement à la suivante. Idéal pour traiter un lot rapidement.</span>
+      <span class="tip-text" data-lang="en"><strong>Export &amp; Next</strong> — in the export dialog, this button exports the current image then automatically moves to the next one. Ideal for quick batch processing.</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 7 — CONSEILS
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span data-lang="fr">Conseils &amp; astuces</span>
+      <span data-lang="en">Tips &amp; tricks</span>
+    </div>
+    <div class="section-h2" data-lang="fr">Aller plus loin</div>
+    <div class="section-h2" data-lang="en">Go further</div>
+
+    <div class="tips-grid">
+      <div class="tip-row">
+        <span class="tip-icon">🌍</span>
+        <span class="tip-text" data-lang="fr">L'interface est disponible en <strong>6 langues</strong> (FR, EN, DE, ES, NL, HI). Changez la langue via le sélecteur globe en haut à droite de l'éditeur.</span>
+        <span class="tip-text" data-lang="en">The interface supports <strong>6 languages</strong> (FR, EN, DE, ES, NL, HI). Change language via the globe selector in the top-right corner of the editor.</span>
+      </div>
+      <div class="tip-row">
+        <span class="tip-icon">🖱️</span>
+        <span class="tip-text" data-lang="fr">Après chaque import (fichier, capture, webcam), l'outil revient automatiquement en mode <strong>Sélection</strong> pour que vous puissiez immédiatement déplacer ou éditer des objets.</span>
+        <span class="tip-text" data-lang="en">After each import (file, screenshot, webcam), the tool automatically returns to <strong>Selection</strong> mode so you can immediately move or edit objects.</span>
+      </div>
+      <div class="tip-row">
+        <span class="tip-icon">📐</span>
+        <span class="tip-text" data-lang="fr">Les annotations sont <strong>sauvegardées par image</strong>. Naviguez librement entre les images — chaque annotation reste attachée à son image d'origine.</span>
+        <span class="tip-text" data-lang="en">Annotations are <strong>saved per image</strong>. Navigate freely between images — each annotation stays attached to its source image.</span>
+      </div>
+      <div class="tip-row">
+        <span class="tip-icon">🔐</span>
+        <span class="tip-text" data-lang="fr">L'éditeur fonctionne <strong>entièrement dans votre navigateur</strong> via Fabric.js. Aucune image n'est envoyée vers un serveur — vos données restent sur votre machine.</span>
+        <span class="tip-text" data-lang="en">The editor runs <strong>entirely in your browser</strong> via Fabric.js. No image is ever sent to a server — your data stays on your machine.</span>
+      </div>
+      <div class="tip-row">
+        <span class="tip-icon">📷</span>
+        <span class="tip-text" data-lang="fr">La <strong>webcam</strong> nécessite une connexion sécurisée (HTTPS) — sauf si vous accédez via <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px;font-size:12px;">localhost</code>.</span>
+        <span class="tip-text" data-lang="en">The <strong>webcam</strong> requires a secure connection (HTTPS) — unless you access via <code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px;font-size:12px;">localhost</code>.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 8 — PRIVACY + PRICING
+  ════════════════════════════════════════════ -->
+  <div class="bottom-grid">
+    <div class="info-card privacy">
+      <div class="info-icon">🔒</div>
+      <h3 data-lang="fr">100 % local, zéro données envoyées</h3>
+      <h3 data-lang="en">100% local, zero data sent</h3>
+      <p data-lang="fr">Tout le traitement s'effectue directement dans votre navigateur via Fabric.js. Vos images ne quittent jamais votre ordinateur — aucun serveur impliqué, aucune connexion requise pendant l'utilisation.</p>
+      <p data-lang="en">All processing happens directly in your browser via Fabric.js. Your images never leave your computer — no server involved, no connection required during use.</p>
+    </div>
+    <div class="info-card pricing">
+      <div class="info-icon">💜</div>
+      <h3 data-lang="fr">Tarification simple</h3>
+      <h3 data-lang="en">Simple pricing</h3>
+      <div class="price-line">
+        <span class="price-amount">2,99€</span>
+        <span class="price-period" data-lang="fr">/ mois</span>
+        <span class="price-period" data-lang="en">/ month</span>
+      </div>
+      <div class="price-yearly" data-lang="fr">ou 29,99€ / an — soit 2 mois offerts</div>
+      <div class="price-yearly" data-lang="en">or €29.99 / year — 2 months free</div>
+      <a href="https://ap-annotator.ced-it.be/" class="cta-btn" target="_blank">
+        <span data-lang="fr">Essai gratuit 24h</span>
+        <span data-lang="en">Free 24h trial</span>
+        →
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ FOOTER ═══ -->
+  <div class="footer">
+    <span>ced-it.be</span> — Ced-IT Image Editor &copy; 2025
+    &nbsp;·&nbsp;
+    <span>ap-annotator.ced-it.be</span>
+  </div>
+
+</div>
+
+<script>
+  function setLang(lang) {
+    document.body.className = lang;
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.textContent.toLowerCase().includes(lang));
+    });
+    // Zone labels right panel
+    document.querySelectorAll('.zone-label.settings[data-lang]').forEach(el => {
+      el.style.display = (el.dataset.lang === lang) ? 'block' : 'none';
+    });
+  }
+  setLang('fr');
+</script>
+</body>
+</html>

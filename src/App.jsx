@@ -411,6 +411,15 @@ function App() {
           <span className="text-gray-400 text-xs md:text-sm">
             {images.length > 0 ? `${currentIndex + 1}/${images.length}` : ''}
           </span>
+          <a
+            href="/guide.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Mode d'emploi"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-yellow-400/40 bg-yellow-400/10 text-yellow-300 hover:border-yellow-400/70 hover:bg-yellow-400/20 hover:text-yellow-200 transition-all text-sm font-bold"
+          >
+            ?
+          </a>
           <LanguageSwitcher />
           <a
             href="https://saas.ced-it.be/"
